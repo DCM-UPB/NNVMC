@@ -53,6 +53,7 @@ int main(){
       ffnn->pushHiddenLayer(HIDDENLAYERSIZE[i]);
    }
    ffnn->connectFFNN();
+   ffnn->assignVariationalParameters();
 
    //Set ACTFs for hidden units
    for (int i=0; i<NHIDDENLAYERS; ++i) {
@@ -68,7 +69,9 @@ int main(){
    ffnn->getOutputLayer()->getOffsetUnit()->setProtoValue(0.); // disable output offset
    ffnn->getOutputLayer()->getOutputNNUnit(0)->setScale(1.05); // allow the lgs a bit of freedom
 
-   cout << "Created FFNN with " << NHIDDENLAYERS << " hidden layer(s) of " << HIDDENLAYERSIZE[0] << ", " << HIDDENLAYERSIZE[1] << " units each." << endl << endl;
+   cout << "Created FFNN with " << NHIDDENLAYERS << " hidden layer(s) of ";
+   for(int i=0; i<NHIDDENLAYERS; ++i) {cout << HIDDENLAYERSIZE[i] << ", ";}
+   cout << " units each." << endl << endl;
    // */
    //FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork("nn.in");
 
