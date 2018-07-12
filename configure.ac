@@ -104,13 +104,14 @@ AC_CHECK_FUNCS([pow sqrt])
 AC_SUBST([DEBUGFLAGS], ["-g -O0"])
 AM_COND_IF(PROFILING, AC_SUBST([OPTFLAGS], ["-O3"]), AC_SUBST([OPTFLAGS], ["-O3 -flto"]))
 AC_SUBST([PROF_CFLAGS], ["-g -DWITHGPERFTOOLS"])
-AC_SUBST([PROF_LFLAGS], ["-lprofiler"])
+AC_SUBST([PROF_LIBS], ["-lprofiler"])
 AC_SUBST([OMP_CFLAGS], ["-DOPENMP -fopenmp"])
-AC_SUBST([OMP_LFLAGS], ["-lomp"])
+AC_SUBST([OMP_LIBS], ["-lomp"])
 
 AC_SUBST([AM_CXXFLAGS], ["-Wall"])
 AC_SUBST([AM_CPPFLAGS], ["-I$(pwd)/include"])
-AC_SUBST([AM_LDFLAGS], ["-L$(pwd)/lib -lmci -lnfm -lvmc -lffnn"])
+AC_SUBST([AM_LDFLAGS], ["-L$(pwd)/lib"])
+AC_SUBST([COM_LIBS], ["-lmci -lnfm -lvmc -lffnn"])
 
 
 # --- Makefiles

@@ -1,11 +1,11 @@
-#include "WaveFunction.hpp"
-#include "Hamiltonian.hpp"
+#include "vmc/WaveFunction.hpp"
+#include "vmc/Hamiltonian.hpp"
+#include "vmc/VMC.hpp"
+#include "ffnn/FeedForwardNeuralNetwork.hpp"
+#include "ffnn/GaussianActivationFunction.hpp"
+#include "ffnn/IdentityActivationFunction.hpp"
+#include "ffnn/PrintUtilities.hpp"
 #include "FFNNWaveFunction.hpp"
-#include "FeedForwardNeuralNetwork.hpp"
-#include "GaussianActivationFunction.hpp"
-#include "IdentityActivationFunction.hpp"
-#include "VMC.hpp"
-#include "PrintUtilities.hpp"
 
 #include <iostream>
 #include <assert.h>

@@ -1,11 +1,10 @@
-AM_LDFLAGS += -lnnvmc
-
 if !DEBUG # then we want to add debug flags manually
   AM_CXXFLAGS += $(DEBUGFLAGS)
 endif
 
 noinst_PROGRAMS = exe
 exe_SOURCES = main.cpp
+exe_LDADD = -lnnvmc $(COM_LIBS)
 
 clean-local:
 	rm -f *.txt

@@ -12,15 +12,16 @@ endif
 
 if PROFILING
   AM_CXXFLAGS += $(PROF_CFLAGS)
-  AM_LDFLAGS += $(PROF_LFLAGS)
+  plib = $(PROF_LIBS)
 endif
 
 if OPENMP
   AM_CXXFLAGS += $(OMP_CFLAGS)
-  AM_LDFLAGS += $(OMP_LFLAGS)
+  olib = $(OMP_LIBS)
 endif
 
 lib_LTLIBRARIES = libnnvmc.la
+libnnvmc_la_LIBADD = ${plib} ${olib} $(COM_LIBS)
 include headers.am
 include sources.am
 

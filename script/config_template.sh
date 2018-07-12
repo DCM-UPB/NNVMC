@@ -13,15 +13,15 @@ export CXX="g++"
 export CXXFLAGS=""
 
 # MCIntegrator++ Library
-MCI_L="-L$(pwd)/../MCIntegratorPlusPlus/"
+MCI_L="-L$(pwd)/../MCIntegratorPlusPlus/ -Wl,-rpath=$(pwd)/../MCIntegratorPlusPlus/"
 MCI_I="-I$(pwd)/../MCIntegratorPlusPlus/src"
 
 # NoisyFunMin Library
-NFM_L="-L$(pwd)/../NoisyFunMin/"
+NFM_L="-L$(pwd)/../NoisyFunMin/ -Wl,-rpath=$(pwd)/../NoisyFunMin/"
 NFM_I="-I$(pwd)/../NoisyFunMin/src"
 
 # VMC++ Library
-VMC_L="-L$(pwd)/../VMCPlusPlus/"
+VMC_L="-L$(pwd)/../VMCPlusPlus/ -Wl,-rpath=$(pwd)/../VMCPlusPlus/"
 VMC_I="-I$(pwd)/../VMCPlusPlus/src/"
 
 # FeedForwardNeuralNetwork Library

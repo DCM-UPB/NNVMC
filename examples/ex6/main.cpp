@@ -2,16 +2,14 @@
 #include <cmath>
 #include <stdexcept>
 
-#include "WaveFunction.hpp"
-#include "Hamiltonian.hpp"
-#include "VMC.hpp"
-#include "ConjGrad.hpp"
+#include "vmc/WaveFunction.hpp"
+#include "vmc/Hamiltonian.hpp"
+#include "vmc/VMC.hpp"
+#include "vmc/NMSimplexOptimization.hpp"
+#include "ffnn/FeedForwardNeuralNetwork.hpp"
+#include "ffnn/ActivationFunctionManager.hpp"
+#include "ffnn/PrintUtilities.hpp"
 #include "FFNNWaveFunction.hpp"
-#include "FeedForwardNeuralNetwork.hpp"
-#include "ActivationFunctionManager.hpp"
-#include "PrintUtilities.hpp"
-
-#include "NMSimplexOptimization.hpp"
 
 
 /*

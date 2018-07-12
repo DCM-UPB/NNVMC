@@ -1,6 +1,6 @@
-#include "MCIntegrator.hpp"
-#include "MCIObservableFunctionInterface.hpp"
-#include "FeedForwardNeuralNetwork.hpp"
+#include "mci/MCIntegrator.hpp"
+#include "mci/MCIObservableFunctionInterface.hpp"
+#include "ffnn/FeedForwardNeuralNetwork.hpp"
 
 #include <iostream>
 

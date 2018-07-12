@@ -2,14 +2,12 @@
 #include <cmath>
 #include <stdexcept>
 
-#include "FeedForwardNeuralNetwork.hpp"
-#include "PrintUtilities.hpp"
-#include "ReadUtilities.hpp"
-#include "WaveFunction.hpp"
+#include "ffnn/FeedForwardNeuralNetwork.hpp"
+#include "ffnn/PrintUtilities.hpp"
+#include "vmc/WaveFunction.hpp"
+#include "vmc/Hamiltonian.hpp"
+#include "vmc/VMC.hpp"
 #include "FFNNWaveFunction.hpp"
-#include "Hamiltonian.hpp"
-#include "VMC.hpp"
-
 
 
 /*
@@ -94,9 +92,6 @@ int main(){
 
     // Declare some trial wave functions
     Gaussian1D1POrbital * psig = new Gaussian1D1POrbital(1.0, 1.0, 0.1);
-
-    //   vector<vector<string>> actf;
-    //readFFNNStructure("nn.txt", actf);
 
     FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork("nn.in");
 
