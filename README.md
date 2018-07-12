@@ -10,7 +10,7 @@ Most subdirectories come with a `README.md` file, explaining the purpose and wha
 
 # Supported Systems
 
-Currently, we automatically test the library on Arch Linux (GCC 8) and MacOS (with clang as well as brewed GCC 8).
+Currently, we automatically test the library on Arch Linux (GCC 8) and MacOS (with clang as well as GCC).
 However, in principle any system with C++11 supporting compiler should work, at least if you manage to install all dependencies.
 
 

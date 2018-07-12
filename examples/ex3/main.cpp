@@ -2,13 +2,14 @@
 #include <cmath>
 #include <stdexcept>
 
-#include "FeedForwardNeuralNetwork.hpp"
-#include "PrintUtilities.hpp"
-#include "ReadUtilities.hpp"
 #include "WaveFunction.hpp"
-#include "FFNNWaveFunction.hpp"
 #include "Hamiltonian.hpp"
 #include "VMC.hpp"
+#include "ConjGrad.hpp"
+#include "FFNNWaveFunction.hpp"
+
+#include "FeedForwardNeuralNetwork.hpp"
+#include "PrintUtilities.hpp"
 
 
 
@@ -33,143 +34,103 @@ public:
 };
 
 
-/*
-  Gaussian Trial Wave Function for 1 particle in 1 dimension, that uses two variational parameters: x0 and v (variance).
-  Psi  =  exp( -0.5*(x-x0)^2/v )
-  Notice that the corresponding probability density (sampling function) is Psi^2.
-  The parameter eps controls the minimal possible value for v
-*/
-class Gaussian1D1POrbital: public WaveFunction{
-protected:
-    double _x0, _v, _niv, _eps;
 
-public:
-    Gaussian1D1POrbital(const double &x0, const double &v, const double &eps):
-        WaveFunction(1 /*num space dimensions*/, 1 /*num particles*/, 1 /*num wf components*/, 2 /*num variational parameters*/, false, false, false) {_eps=eps; this->setVP(x0, v);}
-
-    // overwrite the parent setVP
-    void setVP(const double *in){
-        setVP(in[0], in[1]);
-    }
-
-    //add another own setVP for convenience
-    void setVP(const double &x0, const double &v) {
-        _x0=x0;
-        _v=(v<_eps)? _eps:v;
-        _niv = -1./_v;
-    }
-
-    void getVP(double *out){
-        out[0]=_x0; out[1]=_v;
-    }
-
-    void samplingFunction(const double *x, double *out){
-        /*
-          Compute the sampling function proto value, used in getAcceptance()
-        */
-        *out = _niv*(x[0]-_x0)*(x[0]-_x0);
-    }
-
-    double getAcceptance(const double * protoold, const double * protonew){
-        /*
-          Compute the acceptance probability
-        */
-        return exp(protonew[0]-protoold[0]);
-    }
-
-    void computeAllDerivatives(const double *x){
-        _setD1DivByWF(0, _niv*(x[0]-_x0));
-        _setD2DivByWF(0, _niv + _niv*_niv*(x[0]-_x0)*(x[0]-_x0));
-        if (hasVD1()){
-            _setVD1DivByWF(0, -_niv*(x[0]-_x0));
-            _setVD1DivByWF(1, 0.5*_niv*_niv*(x[0]-_x0)*(x[0]-_x0));
-        }
-    }
-
-};
 
 
 int main(){
     using namespace std;
 
-    // Declare some trial wave functions
-    Gaussian1D1POrbital * psig = new Gaussian1D1POrbital(1.0, 1.0, 0.1);
-
-    //   vector<vector<string>> actf;
-    //readFFNNStructure("nn.txt", actf);
-
-    FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork("nn.in");
-
-    printFFNNStructure(ffnn);
+    const int HIDDENLAYERSIZE = 15;
+    const int NHIDDENLAYERS = 1;
+    FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork(2, HIDDENLAYERSIZE, 2);
+    for (int i=0; i<NHIDDENLAYERS-1; ++i){
+        ffnn->pushHiddenLayer(HIDDENLAYERSIZE);
+    }
+    ffnn->connectFFNN();
+    ffnn->assignVariationalParameters();
 
     // Declare the trial wave functions
-    FFNNWaveFunction * psin = new FFNNWaveFunction(1, 1, ffnn, false, false, false);
+    FFNNWaveFunction * psi = new FFNNWaveFunction(1, 1, ffnn, true, false, false);
+
+    // Store in a .txt file the values of the initial wf, so that it is possible to plot it
+    cout << "Writing the plot file of the initial wave function in plot_init_wf.txt" << endl << endl;
+    double * base_input = new double[psi->getBareFFNN()->getNInput()]; // no need to set it, since it is 1-dim
+    const int input_i = 0;
+    const int output_i = 0;
+    const double min = -7.5;
+    const double max = 7.5;
+    const int npoints = 500;
+    writePlotFile(psi->getBareFFNN(), base_input, input_i, output_i, min, max, npoints, "getOutput", "plot_init_wf.txt");
+
 
     // Declare an Hamiltonian
     // We use the harmonic oscillator with w=1 and w=2
-    const double w = 1.;
-    HarmonicOscillator1D1P * hamg = new HarmonicOscillator1D1P(w, psig);
-    HarmonicOscillator1D1P * hamn = new HarmonicOscillator1D1P(w, psin);
-
-    VMC * vmcg = new VMC(psig, hamg);
-    VMC * vmcn = new VMC(psin, hamn);
-
-    double ** irange = new double*[1];
-    irange[0] = new double[2];
-    irange[0][0] = -5.;
-    irange[0][1] = 5.;
-    cout << "Integration range: " << irange[0][0] << "   <->   " << irange[0][1] << endl << endl;
-    vmcg->getMCI()->setIRange(irange);
-    vmcn->getMCI()->setIRange(irange);
+    const double w1 = 1.;
+    HarmonicOscillator1D1P * ham = new HarmonicOscillator1D1P(w1, psi);
 
 
-    const long NMC = 200000l; // MC samplings to use for computing the energy
+
+
+    cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl;
+
+    VMC * vmc; // VMC object we will resuse
+    const long E_NMC = 5000l; // MC samplings to use for computing the energy
+    const long G_NMC = 10000l; // MC samplings to use for computing the energy gradient
     double * energy = new double[4]; // energy
     double * d_energy = new double[4]; // energy error bar
-    double * vpg = new double[psig->getNVP()];
-    double * vpn = new double[psin->getNVP()];
+    double * vp = new double[psi->getNVP()];
 
 
-    cout << "-> ham:    w = " << w << endl << endl;
+    cout << "-> ham1:    w = " << w1 << endl << endl;
+    vmc = new VMC(psi, ham);
 
-    psig->getVP(vpg);
-    psin->getVP(vpn);
-    cout << "Initial Wave Function parameters:" << endl;
-    cout << endl;
-    cout << "Gaussian:" << endl;
-    cout << "    x0 = " << vpg[0] << endl;
-    cout << "    v  = " << vpg[1] << endl;
-    cout << endl;
-    cout << "Neural Network:" << endl;
-    for (int i=0; i<psin->getNVP(); ++i) cout << "       b" << i << " = " << vpn[i] << endl;
-    cout << endl;
-
-    vmcg->computeVariationalEnergy(NMC, energy, d_energy);
-    cout << "Gaussian energies:" << endl;
-    cout << "    Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
-    cout << "    Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
-    cout << "    Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
-    cout << "    Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
-
-    vmcn->computeVariationalEnergy(NMC, energy, d_energy);
-    cout << "Neural Network energies:" << endl;
-    cout << "    Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
-    cout << "    Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
-    cout << "    Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
-    cout << "    Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
+    // set an integration range, because the NN might be completely delocalized
+    double ** irange = new double*[1];
+    irange[0] = new double[2];
+    irange[0][0] = -7.5;
+    irange[0][1] = 7.5;
+    vmc->getMCI()->setIRange(irange);
 
 
-    delete[] vpg;
-    delete[] vpn;
+    cout << "   Starting energy:" << endl;
+    vmc->computeVariationalEnergy(E_NMC, energy, d_energy);
+    cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
+    cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
+    cout << "       Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
+    cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
+
+
+
+
+    cout << "   Optimization . . ." << endl;
+    vmc->conjugateGradientOptimization(E_NMC, G_NMC);
+    cout << "   . . . Done!" << endl << endl;
+
+    cout << "   Optimized energy:" << endl;
+    vmc->computeVariationalEnergy(E_NMC, energy, d_energy);
+    cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
+    cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
+    cout << "       Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
+    cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl << endl;
+
+
+    // store in a .txt file the values of the optimised wf, so that it is possible to plot it
+    cout << "Writing the plot file of the optimised wave function in plot_opt_wf.txt" << endl << endl;
+    writePlotFile(psi->getBareFFNN(), base_input, input_i, output_i, min, max, npoints, "getOutput", "plot_opt_wf.txt");
+
+
+
+    delete[] irange[0];
+    delete[] irange;
+    delete vmc;
+    delete[] vp;
     delete[] d_energy;
     delete[] energy;
-    delete vmcg;
-    delete vmcn;
-    delete hamg;
-    delete hamn;
-    delete psig;
-    delete psin;
+    delete ham;
+    delete base_input;
+    delete psi;
     delete ffnn;
+
 
 
     return 0;

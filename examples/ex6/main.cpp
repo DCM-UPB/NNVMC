@@ -46,11 +46,11 @@ int main(){
    using namespace std;
 
    const int NSPACEDIM = 1;
+   const int NPARTICLES = 2;
+   // /*
    const int NHIDDENLAYERS = 1;
-   const int HIDDENLAYERSIZE[NHIDDENLAYERS] = {10};
-   const int NPARTICLES = 1;
+   const int HIDDENLAYERSIZE[NHIDDENLAYERS] = {7};//,3};
    FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork(NSPACEDIM*NPARTICLES + 1, HIDDENLAYERSIZE[0], 2);
-   //FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork("nn_in.txt");
    for (int i=1; i<NHIDDENLAYERS; ++i){
       ffnn->pushHiddenLayer(HIDDENLAYERSIZE[i]);
    }
@@ -59,8 +59,9 @@ int main(){
    //Set ACTFs for hidden units
    for (int i=0; i<NHIDDENLAYERS; ++i) {
        for (int j=0; j<HIDDENLAYERSIZE[i]-1; ++j) {
-           ffnn->getNNLayer(i)->getNNUnit(j)->setActivationFunction(std_actf::provideActivationFunction("TANS"));
+           ffnn->getNNLayer(i)->getNNUnit(j)->setActivationFunction(std_actf::provideActivationFunction("LGS"));
        }
+       //ffnn->getNNLayer(i)->getOffsetUnit()->setProtoValue(0.);
    }
 
    //Set ACTF for output unit
@@ -70,9 +71,11 @@ int main(){
    ffnn->getOutputLayer()->getOutputNNUnit(0)->setScale(1.05); // allow the lgs a bit of freedom
 
    cout << "Created FFNN with " << NHIDDENLAYERS << " hidden layer(s) of " << HIDDENLAYERSIZE[0] << ", " << HIDDENLAYERSIZE[1] << " units each." << endl << endl;
+   // */
+   //FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork("nn.in");
 
    // Declare the trial wave functions
-   FFNNWaveFunction * psi = new FFNNWaveFunction(NSPACEDIM, NPARTICLES, ffnn, false, false, false);
+   FFNNWaveFunction * psi = new FFNNWaveFunction(NSPACEDIM, NPARTICLES, ffnn, true, false, false);
 
    // Store in two files the the initial wf, one for plotting, and for recovering it as nn
    cout << "Writing the plot file of the initial wave function in (plot_)init_wf.txt" << endl << endl;
@@ -81,7 +84,8 @@ int main(){
    const double min = -5.;
    const double max = 5.;
    const int npoints = 100;
-   writePlotFile(psi->getBareFFNN(), base_input, 0, 0, min, max, npoints, "getOutput", "plot_init_wf.txt");
+   writePlotFile(psi->getBareFFNN(), base_input, 0, 0, min, max, npoints, "getOutput", "plot_init_wf_r1.txt");
+   writePlotFile(psi->getBareFFNN(), base_input, 1, 0, min, max, npoints, "getOutput", "plot_init_wf_r2.txt");
    psi->getBareFFNN()->storeOnFile("wf_init.txt");
 
 
@@ -95,7 +99,7 @@ int main(){
    cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl;
 
    VMC * vmc; // VMC object we will resuse
-   const long E_NMC = 40000l; // MC samplings to use for computing the energy
+   const long E_NMC = 200000l; // MC samplings to use for computing the energy
    cout << "E_NMC = " << E_NMC << endl << endl;
    double energy[4]; // energy
    double d_energy[4]; // energy error bar
@@ -118,7 +122,7 @@ int main(){
    cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
 
    cout << "   Optimization . . ." << endl;
-   vmc->nmsimplexOptimization(E_NMC, 1.0, 0.1, 0.005);
+   vmc->stochasticReconfigurationOptimization(E_NMC);
    cout << "   . . . Done!" << endl << endl;
 
    cout << "   Optimized energy:" << endl;
@@ -132,7 +136,8 @@ int main(){
    // Store in two files the the initial wf, one for plotting, and for recovering it as nn
 
    cout << "Writing the plot file of the optimised wave function in (plot_)opt_wf.txt" << endl << endl;
-   writePlotFile(psi->getBareFFNN(), base_input, 0, 0, min, max, npoints, "getOutput", "plot_opt_wf.txt");
+   writePlotFile(psi->getBareFFNN(), base_input, 0, 0, min, max, npoints, "getOutput", "plot_opt_wf_r1.txt");
+   writePlotFile(psi->getBareFFNN(), base_input, 1, 0, min, max, npoints, "getOutput", "plot_opt_wf_r2.txt");
    psi->getBareFFNN()->storeOnFile("wf_opt.txt");
 
 

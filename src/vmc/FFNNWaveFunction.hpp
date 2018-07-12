@@ -1,8 +1,8 @@
 #ifndef FFNN_WAVE_FUNCTION
 #define FFNN_WAVE_FUNCTION
 
-#include "WaveFunction.hpp"
-#include "FeedForwardNeuralNetwork.hpp"
+#include "vmc/WaveFunction.hpp"
+#include "ffnn/FeedForwardNeuralNetwork.hpp"
 
 #include <stdexcept>
 

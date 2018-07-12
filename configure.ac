@@ -122,8 +122,12 @@ include/Makefile
 test/ut1/Makefile
 test/Makefile
 examples/ex1/Makefile
+examples/ex6/Makefile
+examples/ex4/Makefile
+examples/ex5/Makefile
+examples/ex2/Makefile
 examples/Makefile
-doc/Makefile
+examples/ex3/Makefile
 Makefile
 benchmark/bench_xyz/Makefile
 benchmark/Makefile

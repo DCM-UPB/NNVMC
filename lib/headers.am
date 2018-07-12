@@ -1,2 +1,2 @@
 pkginclude_HEADERS = \
-../src/test/test.hpp 
+../src/vmc/FFNNWaveFunction.hpp ../src/test/test.hpp 

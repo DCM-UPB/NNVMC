@@ -25,7 +25,7 @@ VMC_L="-L$(pwd)/../VMCPlusPlus/"
 VMC_I="-I$(pwd)/../VMCPlusPlus/src/"
 
 # FeedForwardNeuralNetwork Library
-FFNN_L="-L$(pwd)/../FeedForwardNeuralNetwork/lib/.libs"
+FFNN_L="-L$(pwd)/../FeedForwardNeuralNetwork/lib/"
 FFNN_I="-I$(pwd)/../FeedForwardNeuralNetwork/include/"
 
 

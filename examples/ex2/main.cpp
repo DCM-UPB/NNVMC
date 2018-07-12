@@ -1,37 +1,80 @@
-#include <iostream>
-#include <cmath>
-#include <stdexcept>
-
-#include "WaveFunction.hpp"
-#include "Hamiltonian.hpp"
-#include "VMC.hpp"
-#include "ConjGrad.hpp"
-#include "FFNNWaveFunction.hpp"
-
+#include "MCIntegrator.hpp"
+#include "MCIObservableFunctionInterface.hpp"
 #include "FeedForwardNeuralNetwork.hpp"
-#include "PrintUtilities.hpp"
 
-
+#include <iostream>
 
 /*
-  Hamiltonian describing a 1-particle harmonic oscillator:
-  H  =  p^2 / 2m  +  1/2 * w^2 * x^2
-*/
-class HarmonicOscillator1D1P: public Hamiltonian{
+  Build an example for MCI++:
 
-protected:
-    double _w;
+  compute simultaneously the integrals
+
+  \int_{-10}^{+10} dx nn(x) nn(x)^2
+  \int_{-10}^{+10} dx (d/dx nn(x)) nn(x)^2
+  \int_{-10}^{+10} dx (d^2/dx^2 nn(x)) nn(x)^2
+  \int_{-10}^{+10} dx (d/dbeta_i nn(x)) nn(x)^2    --- beta are the variational parameters
+
+  (nn(x) is a normalized neural network) with MC and a non-MC method.
+
+  This is done by using two NNs: one without any derivative substrate, and one
+  with the first and second derivative substrate.
+  The fast NN without derivatives is used for sampling, the one with the substrates
+  instead will be used for computing all the derivatives, by making use of a
+  call-back function.
+
+  The use of a call-back example is not necessary here, it could have been without.
+  It is done in this way just for illustrative purposes.
+
+*/
+
+
+
+
+
+class MyInterfaces: public MCISamplingFunctionInterface, public MCIObservableFunctionInterface, public MCICallBackOnAcceptanceInterface{
+private:
+    FeedForwardNeuralNetwork * _bare_ffnn;
+    FeedForwardNeuralNetwork * _deriv_ffnn;
 
 public:
-    HarmonicOscillator1D1P(const double w, WaveFunction * wf):
-        Hamiltonian(1 /*num space dimensions*/, 1 /*num particles*/, wf) {_w=w;}
-
-    // potential energy
-    double localPotentialEnergy(const double *r)
-    {
-        return (0.5*_w*_w*(*r)*(*r));
+    MyInterfaces(FeedForwardNeuralNetwork * bare_ffnn, FeedForwardNeuralNetwork * deriv_ffnn)
+        : MCISamplingFunctionInterface(1, 1),
+            MCIObservableFunctionInterface(1, 3+deriv_ffnn->getNVariationalParameters()),
+            MCICallBackOnAcceptanceInterface(1){
+        _bare_ffnn = bare_ffnn;
+        _deriv_ffnn = deriv_ffnn;
     }
+
+    void samplingFunction(const double *in, double * protovalues){
+        _bare_ffnn->setInput(in);
+        _bare_ffnn->FFPropagate();
+        const double v = _bare_ffnn->getOutput(0);
+        protovalues[0] = v*v;
+    }
+
+    double getAcceptance(const double * protoold, const double * protonew){
+        if (protoold[0] == 0.) return 1.;
+        return protonew[0]/protoold[0];
+    }
+
+    void callBackFunction(const double * in, const bool flag_observation){
+        if (flag_observation){
+            _deriv_ffnn->setInput(in);
+            _deriv_ffnn->FFPropagate();
+        }
+    }
+
+    void observableFunction(const double * in, double *out){
+        out[0] = _deriv_ffnn->getOutput(0);
+        out[1] = _deriv_ffnn->getFirstDerivative(0, 0);
+        out[2] = _deriv_ffnn->getSecondDerivative(0, 0);
+        for (int i=0; i<_deriv_ffnn->getNBeta(); ++i){
+            out[3+i] = _deriv_ffnn->getVariationalFirstDerivative(0, i);
+        }
+    }
+
 };
+
 
 
 
@@ -40,98 +83,53 @@ public:
 int main(){
     using namespace std;
 
-    const int HIDDENLAYERSIZE = 15;
-    const int NHIDDENLAYERS = 1;
-    FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork(2, HIDDENLAYERSIZE, 2);
-    for (int i=0; i<NHIDDENLAYERS-1; ++i){
-        ffnn->pushHiddenLayer(HIDDENLAYERSIZE);
-    }
-    ffnn->connectFFNN();
-    ffnn->assignVariationalParameters();
+    const long NMC = 400000;
 
-    // Declare the trial wave functions
-    FFNNWaveFunction * psi = new FFNNWaveFunction(1, 1, ffnn, true, false, false);
+    FeedForwardNeuralNetwork * deriv_ffnn = new FeedForwardNeuralNetwork(2, 10, 2);
+    deriv_ffnn->connectFFNN();
+    deriv_ffnn->assignVariationalParameters();
+    FeedForwardNeuralNetwork * bare_ffnn = new FeedForwardNeuralNetwork(deriv_ffnn);
+    deriv_ffnn->addFirstDerivativeSubstrate();
+    deriv_ffnn->addSecondDerivativeSubstrate();
+    deriv_ffnn->addVariationalFirstDerivativeSubstrate();
 
-    // Store in a .txt file the values of the initial wf, so that it is possible to plot it
-    cout << "Writing the plot file of the initial wave function in plot_init_wf.txt" << endl << endl;
-    double * base_input = new double[psi->getBareFFNN()->getNInput()]; // no need to set it, since it is 1-dim
-    const int input_i = 0;
-    const int output_i = 0;
-    const double min = -7.5;
-    const double max = 7.5;
-    const int npoints = 500;
-    writePlotFile(psi->getBareFFNN(), base_input, input_i, output_i, min, max, npoints, "getOutput", "plot_init_wf.txt");
+    MyInterfaces * my_interfaces = new MyInterfaces(bare_ffnn, deriv_ffnn);
 
+    MCI * mci = new MCI(1);
 
-    // Declare an Hamiltonian
-    // We use the harmonic oscillator with w=1 and w=2
-    const double w1 = 1.;
-    HarmonicOscillator1D1P * ham = new HarmonicOscillator1D1P(w1, psi);
-
-
-
-
-    cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl;
-
-    VMC * vmc; // VMC object we will resuse
-    const long E_NMC = 5000l; // MC samplings to use for computing the energy
-    const long G_NMC = 10000l; // MC samplings to use for computing the energy gradient
-    double * energy = new double[4]; // energy
-    double * d_energy = new double[4]; // energy error bar
-    double * vp = new double[psi->getNVP()];
-
-
-    cout << "-> ham1:    w = " << w1 << endl << endl;
-    vmc = new VMC(psi, ham);
-
-    // set an integration range, because the NN might be completely delocalized
     double ** irange = new double*[1];
     irange[0] = new double[2];
-    irange[0][0] = -7.5;
-    irange[0][1] = 7.5;
-    vmc->getMCI()->setIRange(irange);
+    irange[0][0] = -10.;
+    irange[0][1] = +10.;
 
+    mci->setIRange(irange);
 
-    cout << "   Starting energy:" << endl;
-    vmc->computeVariationalEnergy(E_NMC, energy, d_energy);
-    cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
-    cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
-    cout << "       Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
-    cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
+    mci->addObservable(my_interfaces);
+    mci->addSamplingFunction(my_interfaces);
+    mci->addCallBackOnAcceptance(my_interfaces);
+    double * avg = new double[3+deriv_ffnn->getNBeta()];
+    double * err = new double[3+deriv_ffnn->getNBeta()];
+    mci->integrate(NMC, avg, err);
 
-
-
-
-    cout << "   Optimization . . ." << endl;
-    vmc->conjugateGradientOptimization(E_NMC, G_NMC);
-    cout << "   . . . Done!" << endl << endl;
-
-    cout << "   Optimized energy:" << endl;
-    vmc->computeVariationalEnergy(E_NMC, energy, d_energy);
-    cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
-    cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
-    cout << "       Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
-    cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl << endl;
-
-
-    // store in a .txt file the values of the optimised wf, so that it is possible to plot it
-    cout << "Writing the plot file of the optimised wave function in plot_opt_wf.txt" << endl << endl;
-    writePlotFile(psi->getBareFFNN(), base_input, input_i, output_i, min, max, npoints, "getOutput", "plot_opt_wf.txt");
+    cout << endl;
+    cout << "int_{-10}^{+10} dx nn(x) nn(x)^2  =  " << avg[0] << " +- " << err[0] << endl;
+    cout << "int_{-10}^{+10} dx (d/dx nn(x)) nn(x)^2  =  " << avg[1] << " +- " << err[1] << endl;
+    cout << "int_{-10}^{+10} dx (d^2/dx^2 nn(x)) nn(x)^2  =  " << avg[2] << " +- " << err[2] << endl;
+    for (int i=0; i<deriv_ffnn->getNBeta(); ++i){
+        cout << "int_{-10}^{+10} dx (d/dbeta_" << i << " nn(x)) nn(x)^2  =  " << avg[3+i] << " +- " << err[3+i] << endl;
+    }
+    cout << endl;
 
 
 
+    delete avg;
+    delete err;
     delete[] irange[0];
     delete[] irange;
-    delete vmc;
-    delete[] vp;
-    delete[] d_energy;
-    delete[] energy;
-    delete ham;
-    delete base_input;
-    delete psi;
-    delete ffnn;
-
-
+    delete mci;
+    delete my_interfaces;
+    delete bare_ffnn;
+    delete deriv_ffnn;
 
     return 0;
 }

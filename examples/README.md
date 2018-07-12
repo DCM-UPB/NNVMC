@@ -8,4 +8,12 @@ Run it after the exe by `python plot.py` (requires matplotlib).
 
 ## Example 1
 
-`ex1/`:
+`ex1/`: integration using a FeedForwardNeuralNetwork, making the integrals with and without MC
+
+
+## Example 2
+
+`ex2/`: another NN-MC integration example with beta derivatives calculation
+
+
+## Example 3

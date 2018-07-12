@@ -1,2 +1,2 @@
 libnnvmc_la_SOURCES = \
-../src/test/test.cpp 
+../src/vmc/FFNNWaveFunction.cpp ../src/test/test.cpp 
