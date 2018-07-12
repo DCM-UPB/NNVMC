@@ -1,0 +1,2 @@
+libnnvmc_la_SOURCES = \
+../src/test/test.cpp 

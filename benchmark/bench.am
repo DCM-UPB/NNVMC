@@ -1,0 +1,27 @@
+AM_LDFLAGS += -lnnvmc
+AM_CPPFLAGS += -I../common
+
+if !DEBUG
+  AM_CXXFLAGS += $(OPTFLAGS)
+endif
+
+if PROFILING
+  AM_CXXFLAGS += $(PROF_CFLAGS)
+  AM_LDFLAGS += $(PROF_LFLAGS)
+endif
+
+noinst_PROGRAMS = exe
+exe_SOURCES = main.cpp
+
+if PROFILING
+clean-local:
+	rm -f exe.prof*
+
+run-benchmark: exe
+	CPUPROFILE=exe.prof ./exe > benchmark_new.out
+	pprof --text exe exe.prof
+else
+run-benchmark: exe
+	./exe > benchmark_new.out
+	cat benchmark_new.out
+endif

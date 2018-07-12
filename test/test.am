@@ -1,0 +1,14 @@
+AM_LDFLAGS += -lnnvmc
+
+if !DEBUG # then we want to add debug flags manually
+  AM_CXXFLAGS += $(DEBUGFLAGS)
+endif
+
+noinst_PROGRAMS = exe
+exe_SOURCES = main.cpp
+
+clean-local:
+	rm -f *.txt
+if VALGRIND_ENABLED
+	rm -f vgcore.*
+endif

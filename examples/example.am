@@ -1,0 +1,8 @@
+AM_LDFLAGS += -lnnvmc
+
+if !DEBUG
+  AM_CXXFLAGS += $(OPTFLAGS)
+endif
+
+noinst_PROGRAMS = exe
+exe_SOURCES = main.cpp
