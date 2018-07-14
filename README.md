@@ -1,4 +1,4 @@
-# NVVMC
+# NNVMC
 
 C++ Library for Variational Monte Carlo simulations using a Feed Forward Neural Network as trial wavefunction.
 
@@ -62,7 +62,7 @@ To install the freshly built library and headers into the standard system paths,
   `make install`
 
 If you however want to install the library under a custom path, before installing you have to use
-  `./configure --prefix=/your/absolute/path
+  `./configure --prefix=/your/absolute/path`
 
 
 
