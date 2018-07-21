@@ -48,7 +48,7 @@ int main(){
 
     const int NSPACEDIM = 1;
     const int NPARTICLES = 2;
-    // /*
+    /*
     const int NHIDDENLAYERS = 2;
     const int HIDDENLAYERSIZE[NHIDDENLAYERS] = {6,3};
     FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork(NSPACEDIM*NPARTICLES + 1, HIDDENLAYERSIZE[0], 2);
@@ -56,8 +56,14 @@ int main(){
     for (int i=1; i<NHIDDENLAYERS; ++i){
         ffnn->pushHiddenLayer(HIDDENLAYERSIZE[i]);
     }
+    ffnn->pushFeatureMapLayer(4);
+    ffnn->getFeatureMapLayer(0)->setNMaps(1,2);
+
     ffnn->storeOnFile("ffnn_2.txt");
     ffnn->connectFFNN();
+    ffnn->getFeatureMapLayer(0)->getEDMapUnit(0)->getEDMap()->setParameters(1, 1, 2); // distance of first and second non-offset input
+    ffnn->getFeatureMapLayer(0)->getIdMapUnit(0)->getIdMap()->setParameters(1);
+    ffnn->getFeatureMapLayer(0)->getIdMapUnit(1)->getIdMap()->setParameters(2);
     ffnn->storeOnFile("ffnn_3.txt");
     ffnn->assignVariationalParameters();
     ffnn->storeOnFile("ffnn_4.txt");
@@ -74,13 +80,15 @@ int main(){
 
     smart_beta::generateSmartBeta(ffnn);
 
-    ffnn->getOutputLayer()->getOffsetUnit()->setProtoValue(0.); // disable output offset
+    ffnn->getLayer(ffnn->getNLayers()-2)->getOffsetUnit()->setProtoValue(0.); // disable offset for output
     //ffnn->getOutputLayer()->getOutputNNUnit(0)->setScale(1.05); // allow the lgs a bit of freedom
     ffnn->storeOnFile("ffnn_5.txt");
 
     cout << "Created FFNN with " << NHIDDENLAYERS << " hidden layer(s) of " << HIDDENLAYERSIZE[0] << ", " << HIDDENLAYERSIZE[1] << " units each." << endl << endl;
-    // */
-    //FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork("nn.in");
+    */
+    
+    FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork("nn.in");
+    ffnn->getLayer(ffnn->getNLayers()-2)->getOffsetUnit()->setProtoValue(0.); // disable output offset
 
     // Declare the trial wave functions
     FFNNWaveFunction * psi = new FFNNWaveFunction(NSPACEDIM, NPARTICLES, ffnn, true, false, false);
@@ -102,7 +110,7 @@ int main(){
     double w1 = 1.0;
     double w2 = 0.5;
 
-    HarmonicTrapSoftCore1DNP * ham = new HarmonicTrapSoftCore1DNP(w1, 2., 5., psi);
+    HarmonicTrapSoftCore1DNP * ham = new HarmonicTrapSoftCore1DNP(w1, 0.5, 20., psi);
 
     cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl;
 

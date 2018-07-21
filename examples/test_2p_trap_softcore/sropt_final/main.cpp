@@ -75,13 +75,14 @@ int main(){
 
     smart_beta::generateSmartBeta(ffnn);
 
-    ffnn->getOutputLayer()->getOffsetUnit()->setProtoValue(0.); // disable output offset
+    ffnn->getLayer(ffnn->getNLayers()-2)->getOffsetUnit()->setProtoValue(0.); // disable output offset
     //ffnn->getOutputLayer()->getOutputNNUnit(0)->setScale(1.05); // allow the lgs a bit of freedom
     ffnn->storeOnFile("ffnn_5.txt");
 
     cout << "Created FFNN with " << NHIDDENLAYERS << " hidden layer(s) of " << HIDDENLAYERSIZE[0] << ", " << HIDDENLAYERSIZE[1] << " units each." << endl << endl;
     */
     FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork("nn.in");
+    ffnn->getLayer(ffnn->getNLayers()-2)->getOffsetUnit()->setProtoValue(0.); // disable output offset
 
     // Declare the trial wave functions
     FFNNWaveFunction * psi = new FFNNWaveFunction(NSPACEDIM, NPARTICLES, ffnn, true, false, false);
@@ -103,12 +104,12 @@ int main(){
     double w1 = 1.0;
     double w2 = 0.5;
 
-    HarmonicTrapSoftCore1DNP * ham = new HarmonicTrapSoftCore1DNP(w1, 2., 5., psi);
+    HarmonicTrapSoftCore1DNP * ham = new HarmonicTrapSoftCore1DNP(w1, 0.5, 20., psi);
 
     cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl;
 
     VMC * vmc; // VMC object we will resuse
-    const long E_NMC = 1000000l; // MC samplings to use for computing the energy
+    const long E_NMC = 100000l; // MC samplings to use for computing the energy
     cout << "E_NMC = " << E_NMC << endl << endl;
     double energy[4]; // energy
     double d_energy[4]; // energy error bar
