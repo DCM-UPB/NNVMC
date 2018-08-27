@@ -122,6 +122,7 @@ lib/Makefile
 include/Makefile
 test/ut1/Makefile
 test/Makefile
+examples/ex7/Makefile
 examples/ex1/Makefile
 examples/ex6/Makefile
 examples/ex4/Makefile
