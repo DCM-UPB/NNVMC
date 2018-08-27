@@ -126,10 +126,6 @@ examples/ex1/Makefile
 examples/ex6/Makefile
 examples/ex4/Makefile
 examples/ex5/Makefile
-examples/test_2p_trap_softcore/sropt_final/Makefile
-examples/test_2p_trap_softcore/Makefile
-examples/test_2p_trap_softcore/nmsopt_init/Makefile
-examples/test_2p_trap_softcore/lsfit_prep/Makefile
 examples/ex2/Makefile
 examples/Makefile
 examples/ex3/Makefile
