@@ -38,9 +38,9 @@ public:
     // MCI acceptance starting from the new and old sampling functions
     double getAcceptance(const double * protoold, const double * protonew);
 
-    // --- computation of the derivatives
+    // --- computation of the derivatives / wf value
     void computeAllDerivatives(const double *in);
-
+    double computeWFValue(const double * protovalues);
 };
 
 

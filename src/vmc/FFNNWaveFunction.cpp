@@ -81,10 +81,12 @@ void FFNNWaveFunction::computeAllDerivatives(const double *in){
             }
         }
     }
-
 }
 
-
+double FFNNWaveFunction::computeWFValue(const double * protovalues)
+{
+    return sqrt(protovalues[0]);
+}
 
 
 // -- Constructor and destructor

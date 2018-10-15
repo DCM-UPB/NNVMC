@@ -84,6 +84,9 @@ public:
         }
     }
 
+    double computeWFValue(const double * protovalues){
+        return exp(0.5*protovalues[0]);
+    }
 };
 
 
