@@ -20,9 +20,7 @@ void FFNNWaveFunction::getVP(double *vp){
 }
 
 
-
-
-// --- methods herited from MCISamplingFunctionInterface
+// --- methods inherited from MCISamplingFunctionInterface
 
 void FFNNWaveFunction::samplingFunction(const double * in, double * out){
     _bare_ffnn->setInput(in);
@@ -40,8 +38,6 @@ double FFNNWaveFunction::getAcceptance(const double * protoold, const double * p
 
     return protonew[0]/protoold[0];
 }
-
-
 
 
 // --- computation of the derivatives
@@ -76,8 +72,8 @@ void FFNNWaveFunction::computeAllDerivatives(const double *in){
 
     if (hasD2VD1()){
         for (int id2=0; id2<getTotalNDim(); ++id2){
-            for (int ivd1=0; ivd1<getNVP(); ++ivd1){
-                _setD1VD1DivByWF(id2, ivd1, _deriv_ffnn->getCrossSecondDerivative(0, id2, ivd1) / wf_value);
+            for (int ivd2=0; ivd2<getNVP(); ++ivd2){
+                _setD2VD1DivByWF(id2, ivd2, _deriv_ffnn->getCrossSecondDerivative(0, id2, ivd2) / wf_value);
             }
         }
     }

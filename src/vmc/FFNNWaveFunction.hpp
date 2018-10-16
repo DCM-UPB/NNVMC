@@ -22,7 +22,6 @@ public:
     ~FFNNWaveFunction();
 
 
-
     // --- Getters
     FeedForwardNeuralNetwork * getBareFFNN(){return _bare_ffnn;}
     FeedForwardNeuralNetwork * getDerivFFNN(){return _deriv_ffnn;}
@@ -32,7 +31,7 @@ public:
     void setVP(const double *vp);
     void getVP(double *vp);
 
-    // --- methods herited from MCISamplingFunctionInterface
+    // --- methods inherited from MCISamplingFunctionInterface
     // wave function values that will be used to compute the acceptance
     void samplingFunction(const double * in, double * out);
     // MCI acceptance starting from the new and old sampling functions
