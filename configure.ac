@@ -80,7 +80,7 @@ AC_PROG_LN_S
 AC_PROG_RANLIB
 
 # check for c++11 support (and add compiler flag)
-AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
+#AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
 
 # check for valgrind
 AX_VALGRIND_CHECK
