@@ -38,3 +38,7 @@ Keep that in mind and restart the examples a few times if necessary.
 ## Example 6
 
 `ex6/`: solve 1 dimension 1 particle harmonic oscillator using a Neural Network Wave Function and optimizing via the Adam algorithm.
+
+## Example 7
+
+`ex7/`: solve 1 dimension 1 particle harmonic oscillator using a PyTorch-driven Neural Network Wave Function and optimizing via the Adam algorithm.

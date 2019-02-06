@@ -15,8 +15,9 @@ endif()
 # find packages
 message(STATUS "Configured MCI_ROOT_DIR: ${MCI_ROOT_DIR}")
 message(STATUS "Configured NFM_ROOT_DIR: ${NFM_ROOT_DIR}")
-message(STATUS "Configured NFM_ROOT_DIR: ${VMC_ROOT_DIR}")
-message(STATUS "Configured NFM_ROOT_DIR: ${FFNN_ROOT_DIR}")
+message(STATUS "Configured VMC_ROOT_DIR: ${VMC_ROOT_DIR}")
+message(STATUS "Configured FFNN_ROOT_DIR: ${FFNN_ROOT_DIR}")
+message(STATUS "Configured SANNIFA_ROOT_DIR: ${SANNIFA_ROOT_DIR}")
 message(STATUS "Configured GSL_ROOT_DIR: ${GSL_ROOT_DIR}")
 
 if (USE_MPI)
@@ -53,12 +54,18 @@ find_library(FFNN_STATIC_LIBRARY_DIR ffnn_static HINTS "${FFNN_ROOT_DIR}/build/s
 find_package_handle_standard_args(libffnn DEFAULT_MSG FFNN_LIBRARY_DIR FFNN_INCLUDE_DIR)
 find_package_handle_standard_args(libffnn_static DEFAULT_MSG FFNN_STATIC_LIBRARY_DIR FFNN_INCLUDE_DIR)
 
+find_path(SANNIFA_INCLUDE_DIR sannifa/ANNFunctionInterface.hpp HINTS "${SANNIFA_ROOT_DIR}/include/")
+find_library(SANNIFA_LIBRARY_DIR sannifa HINTS "${SANNIFA_ROOT_DIR}/build/src/")
+find_library(SANNIFA_STATIC_LIBRARY_DIR sannifa_static HINTS "${SANNIFA_ROOT_DIR}/build/src/")
+find_package_handle_standard_args(libsannifa DEFAULT_MSG SANNIFA_LIBRARY_DIR SANNIFA_INCLUDE_DIR)
+find_package_handle_standard_args(libsannifa_static DEFAULT_MSG SANNIFA_STATIC_LIBRARY_DIR SANNIFA_INCLUDE_DIR)
+
 
 message(STATUS "Configured CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
 message(STATUS "Configured CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 # set header / library paths
-include_directories(include/ ${MCI_INCLUDE_DIR} ${NFM_INCLUDE_DIR} ${VMC_INCLUDE_DIR} ${FFNN_INCLUDE_DIR}) # headers
+include_directories(include/ ${MCI_INCLUDE_DIR} ${NFM_INCLUDE_DIR} ${VMC_INCLUDE_DIR} ${FFNN_INCLUDE_DIR} ${SANNIFA_INCLUDE_DIR}) # headers
 
 enable_testing()
 

@@ -24,5 +24,8 @@ VMC_ROOT="/...../VMCPlusPlus"
 # FeedForwardNeuralNetwork Library
 FFNN_ROOT="/...../FeedForwardNeuralNetwork"
 
+# sannifa Library
+SANNIFA_ROOT="/...../sannifa"
+
 # GNU Scientific Library
 GSL_ROOT="" # provide a path if not in system location
