@@ -2,6 +2,23 @@
 
 #include <cmath>
 
+// -- Constructor and destructor
+
+SannifaWaveFunction::SannifaWaveFunction(const int &nspacedim, const int &npart, ANNFunctionInterface * ann)
+    :WaveFunction(nspacedim, npart, 1, ann->getNVariationalParameters(),
+                  ann->hasVariationalFirstDerivative(), ann->hasCrossFirstDerivative(), ann->hasCrossSecondDerivative()),
+     _ann(ann)
+{
+    if (ann->getNInput() != nspacedim*npart) {
+        throw std::invalid_argument( "ANN number of inputs does not fit the nspacedime and npart" );
+    }
+    if (ann->getNOutput() != 1) {
+        throw std::invalid_argument( "ANN number of output does not fit the wave function requirement (only one value)" );
+    }
+    if (!ann->hasFirstDerivative()) {
+        throw std::invalid_argument( "ANN does not provide at least the first derivative to compute energies.");
+    }
+}
 
 // --- interface for manipulating the variational parameters
 void SannifaWaveFunction::setVP(const double *vp){
@@ -35,7 +52,6 @@ void SannifaWaveFunction::computeAllDerivatives(const double *in){
     _ann->evaluate(in, true); // true -> with gradient
 
     const double wf_value = _ann->getOutput(0);
-
     for (int id1=0; id1<getTotalNDim(); ++id1){
         _setD1DivByWF(id1, _ann->getFirstDerivative(0, id1) / wf_value);
     }
@@ -70,23 +86,4 @@ void SannifaWaveFunction::computeAllDerivatives(const double *in){
 double SannifaWaveFunction::computeWFValue(const double * protovalues)
 {
     return sqrt(protovalues[0]);
-}
-
-
-// -- Constructor and destructor
-
-SannifaWaveFunction::SannifaWaveFunction(const int &nspacedim, const int &npart, ANNFunctionInterface * ann)
-    :WaveFunction(nspacedim, npart, 1, ann->getNVariationalParameters(),
-                  ann->hasVariationalFirstDerivative(), ann->hasCrossFirstDerivative(), ann->hasCrossSecondDerivative()),
-     _ann(ann)
-{
-    if (ann->getNInput() != nspacedim*npart) {
-        throw std::invalid_argument( "ANN number of inputs does not fit the nspacedime and npart" );
-    }
-    if (ann->getNOutput() != 1) {
-        throw std::invalid_argument( "ANN number of output does not fit the wave function requirement (only one value)" );
-    }
-    if (!ann->hasFirstDerivative()) {
-        throw std::invalid_argument( "ANN does not provide at least the first derivative to compute energies.");
-    }
 }

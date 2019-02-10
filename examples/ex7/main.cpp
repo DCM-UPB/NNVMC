@@ -2,12 +2,16 @@
 #include <cmath>
 
 #include "SannifaWaveFunction.hpp"
+#include "FFNNWaveFunction.hpp"
 #include "vmc/VMC.hpp"
 #include "vmc/Hamiltonian.hpp"
-#include "mci/MPIMCI.hpp"
+//#include "vmc/MPIVMC.hpp"
+//#include "mci/MPIMCI.hpp"
 #include "nfm/LogNFM.hpp"
+#include "ffnn/FeedForwardNeuralNetwork.hpp"
 #include "sannifa/ANNFunctionInterface.hpp"
 #include "sannifa/TorchNetwork.hpp"
+#include "sannifa/FFNNetwork.hpp"
 
 #include <torch/torch.h>
 
@@ -82,15 +86,16 @@ struct Model: public torch::nn::Module {
 
 };
 
+
 int main(int argc, char **argv){
-    int myrank = MPIMCI::init(); // first run custom MPI init
+    int myrank = MPIVMC::Init(); // first run custom MPI init
 
     using namespace std;
 
     // defaults
-    long E_NMC = 50000l; // for energy evaluation at start/end
-    long G_NMC = 2500l; // for energy/gradient evaluations during optimization
-    int max_n_const = 10; // constant values to stop
+    long E_NMC = 250000l; // for energy evaluation at start/end
+    long G_NMC = 25000l; // for energy/gradient evaluations during optimization
+    int max_n_const = 100; // constant values to stop
 
     if (myrank == 0) {
         cout << "E_NMC = " << E_NMC << endl;
@@ -98,19 +103,42 @@ int main(int argc, char **argv){
         cout << "maxn const = " << max_n_const << endl;
     }
 
+
     // create pyTorch ANN
-    torch::nn::AnyModule anymodel(Model(1, 10, 1));
+    torch::nn::AnyModule anymodel(Model(1, 50, 1));
     TorchNetwork wrappedANN(anymodel, 1, 1);
+
+/*
+    // create libffnn ANN
+    FeedForwardNeuralNetwork ffnn(2, 11, 2);
+    ffnn.pushHiddenLayer(11);
+    ffnn.getOutputLayer()->getNNUnit(0)->setActivationFunction("LGS");
+    ffnn.connectFFNN();
+    ffnn.assignVariationalParameters();
+    FFNNetwork wrappedANN(&ffnn);
+*/
+
     wrappedANN.enableFirstDerivative();
     wrappedANN.enableSecondDerivative();
     wrappedANN.enableVariationalFirstDerivative();
 
+    cout << "wrappedANN.getNInput() -> " << wrappedANN.getNInput() << endl;
+    cout << "wrappedANN.getNOutput() -> " << wrappedANN.getNOutput() << endl;
+    cout << "wrappedANN.getNVariationalParameters() -> " << wrappedANN.getNVariationalParameters() << endl;
+
     // Declare the trial wave function
-    SannifaWaveFunction psi(1 /*space dimension*/, 1 /*#particles*/, &wrappedANN);
+    SannifaWaveFunction * psi = new SannifaWaveFunction(1 /*space dimension*/, 1 /*#particles*/, &wrappedANN);
+    
+    // do the same with old wrapper
+    //FFNNWaveFunction * psi = new FFNNWaveFunction(1, 1, &ffnn, true);
+
+    cout << "psi->getNSpaceDim() -> " << psi->getNSpaceDim() << endl;
+    cout << "psi->getNPart() -> " << psi->getNPart() << endl;
 
     // Declare an Hamiltonian
     // We use the harmonic oscillator with w=1 and soft-core potential
-    HarmonicOscillatorNDNP ham(1., &psi);
+    HarmonicOscillatorNDNP * ham = new HarmonicOscillatorNDNP(1., psi);
+
 
     NFMLogManager * log_manager;
     if (myrank == 0) {
@@ -120,24 +148,25 @@ int main(int argc, char **argv){
 
     if (myrank == 0) cout << endl << " - - - ANN-WF FUNCTION OPTIMIZATION - - - " << endl << endl;
 
-    VMC vmc(&psi, &ham); // VMC object we will resuse
+    VMC * vmc = new VMC(psi, ham); // VMC object we will resuse
     double energy[4]; // energy
     double d_energy[4]; // energy error bar
 
+
     // set an integration range, because the NN might be completely delocalized
-    const double hrange = 10.;
+    const double hrange = 5.;
     double ** irange = new double*[1];
     irange[0] = new double[2];
     irange[0][0] = -hrange;
     irange[0][1] = hrange;
     if (myrank == 0) cout << "Integration range: " << irange[0][0] << "   <->   " << irange[0][1] << endl << endl;
-    vmc.getMCI()->setIRange(irange);
+    vmc->getMCI()->setIRange(irange);
 
     const double target_acc_rate = 0.5;
-    vmc.getMCI()->setTargetAcceptanceRate(&target_acc_rate);
+    vmc->getMCI()->setTargetAcceptanceRate(&target_acc_rate);
 
     if (myrank == 0) cout << "   Starting energy:" << endl;
-    vmc.computeVariationalEnergy(E_NMC, energy, d_energy);
+    vmc->computeVariationalEnergy(E_NMC, energy, d_energy);
     if (myrank == 0) {
         cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
         cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
@@ -147,14 +176,14 @@ int main(int argc, char **argv){
         cout << "   Optimization . . ." << endl;
     }
 
-    vmc.adamOptimization(G_NMC, false, false, max_n_const, false, 0.005, 0.002, 0.9, 0.9);
+    vmc->adamOptimization(G_NMC, false, false, max_n_const, false, 0.005, 0.002, 0.9, 0.9);
     if (myrank == 0) {
         cout << "   . . . Done!" << endl << endl;
 
         cout << "   Optimized energy:" << endl;
     }
 
-    vmc.computeVariationalEnergy(E_NMC, energy, d_energy);
+    vmc->computeVariationalEnergy(E_NMC, energy, d_energy);
 
     if (myrank == 0) {
         cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
@@ -163,11 +192,15 @@ int main(int argc, char **argv){
         cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl << endl;
     }
 
-    delete [] irange[0];
-    delete[] irange;
+    //delete [] irange[0];
+    //delete[] irange;
+
+    delete vmc;
+    delete ham;
+    delete psi;
     if (myrank == 0) delete log_manager;
 
-    MPIMCI::finalize();
+    MPIVMC::Finalize();
 
     return 0;
 }
