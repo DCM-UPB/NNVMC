@@ -1,4 +1,4 @@
-#include "FFNNWaveFunction.hpp"
+#include "nnvmc/FFNNWaveFunction.hpp"
 
 #include <cmath>
 

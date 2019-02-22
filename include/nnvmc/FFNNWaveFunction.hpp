@@ -2,7 +2,7 @@
 #define FFNN_WAVE_FUNCTION
 
 #include "vmc/WaveFunction.hpp"
-#include "ffnn/FeedForwardNeuralNetwork.hpp"
+#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
 
 #include <stdexcept>
 

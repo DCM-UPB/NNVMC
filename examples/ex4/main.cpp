@@ -2,12 +2,13 @@
 #include <cmath>
 #include <stdexcept>
 
-#include "ffnn/FeedForwardNeuralNetwork.hpp"
-#include "ffnn/PrintUtilities.hpp"
+#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
+#include "ffnn/io/PrintUtilities.hpp"
 #include "vmc/WaveFunction.hpp"
 #include "vmc/Hamiltonian.hpp"
 #include "vmc/VMC.hpp"
-#include "FFNNWaveFunction.hpp"
+#include "vmc/MPIVMC.hpp"
+#include "nnvmc/FFNNWaveFunction.hpp"
 
 
 /*
@@ -93,6 +94,8 @@ public:
 int main(){
     using namespace std;
 
+    MPIVMC::Init(); // to avoid error when using MPI-compiled VMC library
+
     // Declare some trial wave functions
     Gaussian1D1POrbital * psig = new Gaussian1D1POrbital(1.0, 1.0, 0.1);
 
@@ -122,10 +125,10 @@ int main(){
 
 
     const long NMC = 200000l; // MC samplings to use for computing the energy
-    double * energy = new double[4]; // energy
-    double * d_energy = new double[4]; // energy error bar
-    double * vpg = new double[psig->getNVP()];
-    double * vpn = new double[psin->getNVP()];
+    double energy[4]; // energy
+    double d_energy[4]; // energy error bar
+    double vpg[psig->getNVP()];
+    double vpn[psin->getNVP()];
 
 
     cout << "-> ham:    w = " << w << endl << endl;
@@ -157,10 +160,6 @@ int main(){
     cout << "    Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
 
 
-    delete[] vpg;
-    delete[] vpn;
-    delete[] d_energy;
-    delete[] energy;
     delete vmcg;
     delete vmcn;
     delete hamg;
@@ -169,6 +168,7 @@ int main(){
     delete psin;
     delete ffnn;
 
+    MPIVMC::Finalize();
 
     return 0;
 }

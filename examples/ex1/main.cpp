@@ -1,6 +1,6 @@
 #include "mci/MCIntegrator.hpp"
 #include "mci/MCIObservableFunctionInterface.hpp"
-#include "ffnn/FeedForwardNeuralNetwork.hpp"
+#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
 
 #include <iostream>
 
@@ -168,11 +168,11 @@ int main(){
     // compute   \int_{-10}^{+10} dx nn(x)^2    which is the normalization factor
     NN2 * nn2 = new NN2(ffnn);
     mci->addObservable(nn2);
-    double * nn2_av = new double;
-    double * nn2_er = new double;
-    mci->integrate(NMC, nn2_av, nn2_er);
+    double nn2_av;
+    double nn2_er;
+    mci->integrate(NMC, &nn2_av, &nn2_er);
     cout << "Compute the normalization factor:";
-    cout << "    normalization = " << *nn2_av << " +- " << *nn2_er << endl;
+    cout << "    normalization = " << nn2_av << " +- " << nn2_er << endl;
 
 
 
@@ -188,12 +188,12 @@ int main(){
     NN2X2 * nn2x2 = new NN2X2(ffnn);
     mci->clearObservables();
     mci->addObservable(nn2x2);
-    double * nn2x2_av = new double;
-    double * nn2x2_er = new double;
-    mci->integrate(NMC, nn2x2_av, nn2x2_er);
+    double nn2x2_av;
+    double nn2x2_er;
+    mci->integrate(NMC, &nn2x2_av, &nn2x2_er);
     mci->clearObservables();
     cout << "1. MC without sampling: ";
-    cout << *nn2x2_av / *nn2_av << " +- " << *nn2x2_er / *nn2_av << endl << endl;
+    cout << nn2x2_av / nn2_av << " +- " << nn2x2_er / nn2_av << endl << endl;
 
 
     // compute   \int_{-10}^{+10} dx x^2 nn(x)^2    MC with sampling
@@ -201,13 +201,13 @@ int main(){
     mci->addObservable(x2);
     NN2Sampling * nn2_samp = new NN2Sampling(ffnn);
     mci->addSamplingFunction(nn2_samp);
-    double * nn2x2_samp_av = new double;
-    double * nn2x2_samp_er = new double;
-    mci->integrate(NMC, nn2x2_samp_av, nn2x2_samp_er);
+    double nn2x2_samp_av;
+    double nn2x2_samp_er;
+    mci->integrate(NMC, &nn2x2_samp_av, &nn2x2_samp_er);
     mci->clearObservables();
     mci->clearSamplingFunctions();
     cout << "2. MC with sampling: ";
-    cout << *nn2x2_samp_av << " +- " << *nn2x2_samp_er << endl << endl;
+    cout << nn2x2_samp_av << " +- " << nn2x2_samp_er << endl << endl;
 
 
     // compute   \int_{-10}^{+10} dx x^2 nn(x)^2    direct integral
@@ -220,7 +220,7 @@ int main(){
         x += DX;
     }
     cout << "3. Direct integral: ";
-    cout << integral / *nn2_av << endl << endl;
+    cout << integral / nn2_av << endl << endl;
 
 
 
@@ -235,24 +235,24 @@ int main(){
     // compute   \int_{-10}^{+10} dx (- \nabla^2 log(nn(x))) nn(x)^2   MC without sampling
     NN2Nabla2 * nn2nabla2 = new NN2Nabla2(ffnn);
     mci->addObservable(nn2nabla2);
-    double * nn2nabla2_av = new double;
-    double * nn2nabla2_er = new double;
-    mci->integrate(NMC, nn2nabla2_av, nn2nabla2_er);
+    double nn2nabla2_av;
+    double nn2nabla2_er;
+    mci->integrate(NMC, &nn2nabla2_av, &nn2nabla2_er);
     mci->clearObservables();
     cout << "1. MC without sampling: ";
-    cout << *nn2nabla2_av / *nn2_av << " +- " << *nn2nabla2_er / *nn2_av << endl << endl;
+    cout << nn2nabla2_av / nn2_av << " +- " << nn2nabla2_er / nn2_av << endl << endl;
 
     // compute   \int_{-10}^{+10} dx (- \nabla^2 log(nn(x))) nn(x)^2    MC with sampling
     Nabla2 * nabla2 = new Nabla2(ffnn);
     mci->addObservable(nabla2);
     mci->addSamplingFunction(nn2_samp);
-    double * nn2nabla2_samp_av = new double;
-    double * nn2nabla2_samp_er = new double;
-    mci->integrate(NMC, nn2nabla2_samp_av, nn2nabla2_samp_er);
+    double nn2nabla2_samp_av;
+    double nn2nabla2_samp_er;
+    mci->integrate(NMC, &nn2nabla2_samp_av, &nn2nabla2_samp_er);
     mci->clearObservables();
     mci->clearSamplingFunctions();
     cout << "2. MC with sampling: ";
-    cout << *nn2nabla2_samp_av << " +- " << *nn2nabla2_samp_er << endl << endl;
+    cout << nn2nabla2_samp_av << " +- " << nn2nabla2_samp_er << endl << endl;
 
     // compute   \int_{-10}^{+10} dx (- \nabla^2 log(nn(x))) nn(x)^2    direct integral
     x = irange[0][0];
@@ -264,24 +264,15 @@ int main(){
         x += DX;
     }
     cout << "3. Direct integral: ";
-    cout << integral / *nn2_av << endl;
+    cout << integral / nn2_av << endl;
 
 
 
-
-
-
-    delete nn2nabla2_samp_er;
-    delete nn2nabla2_samp_av;
     delete nabla2;
-    delete nn2nabla2_er;
-    delete nn2nabla2_av;
     delete nn2nabla2;
-
-    delete nn2x2_er;
-    delete nn2x2_av;
-    delete nn2_er;
-    delete nn2_av;
+    delete nn2_samp;
+    delete x2;
+    delete nn2x2;
     delete nn2;
     delete[] irange[0];
     delete[] irange;

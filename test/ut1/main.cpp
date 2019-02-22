@@ -1,11 +1,12 @@
 #include "vmc/WaveFunction.hpp"
 #include "vmc/Hamiltonian.hpp"
 #include "vmc/VMC.hpp"
-#include "ffnn/FeedForwardNeuralNetwork.hpp"
-#include "ffnn/GaussianActivationFunction.hpp"
-#include "ffnn/IdentityActivationFunction.hpp"
-#include "ffnn/PrintUtilities.hpp"
-#include "FFNNWaveFunction.hpp"
+#include "vmc/MPIVMC.hpp"
+#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
+#include "ffnn/actf/GaussianActivationFunction.hpp"
+#include "ffnn/actf/IdentityActivationFunction.hpp"
+#include "ffnn/io/PrintUtilities.hpp"
+#include "nnvmc/FFNNWaveFunction.hpp"
 
 #include <iostream>
 #include <assert.h>
@@ -139,9 +140,11 @@ public:
 int main(){
     using namespace std;
 
+    MPIVMC::Init(); // to not throw error when libraries are MPI-compiled
+
     // parameters
-    const long Nmc = 100000l;
-    const double TINY = 0.000001;
+    const long Nmc = 20000l;
+    const double TINY = 0.00001;
 
     // variational parameters
     const double a = 0.37;
@@ -192,9 +195,11 @@ int main(){
 
     // --- Check that the energies are the same
     VMC * vmc = new VMC(psi, ham1);
+    vmc->getMCI()->setNfindMRT2steps(10);
+    vmc->getMCI()->setNdecorrelationSteps(1000);
 
-    double * energy = new double[4];
-    double * d_energy = new double[4];
+    double energy[4];
+    double d_energy[4];
     vmc->computeVariationalEnergy(Nmc, energy, d_energy);
     // cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
     // cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
@@ -247,8 +252,6 @@ int main(){
 
 
     // free resources
-    delete[] energy;
-    delete[] d_energy;
     delete vmc_check;
     delete vmc;
     delete ham1;
@@ -257,6 +260,7 @@ int main(){
     delete psi;
     delete ffnn;
 
+    MPIVMC::Finalize();
 
     return 0;
 }

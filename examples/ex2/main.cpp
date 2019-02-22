@@ -1,6 +1,6 @@
 #include "mci/MCIntegrator.hpp"
 #include "mci/MCIObservableFunctionInterface.hpp"
-#include "ffnn/FeedForwardNeuralNetwork.hpp"
+#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
 
 #include <iostream>
 
@@ -103,12 +103,13 @@ int main(){
     irange[0][1] = +10.;
 
     mci->setIRange(irange);
+    mci->setNdecorrelationSteps(1000); // auto-decorrelation doesn't work well with gradients, so set fixed nsteps
 
     mci->addObservable(my_interfaces);
     mci->addSamplingFunction(my_interfaces);
     mci->addCallBackOnAcceptance(my_interfaces);
-    double * avg = new double[3+deriv_ffnn->getNBeta()];
-    double * err = new double[3+deriv_ffnn->getNBeta()];
+    double avg[3+deriv_ffnn->getNBeta()];
+    double err[3+deriv_ffnn->getNBeta()];
     mci->integrate(NMC, avg, err);
 
     cout << endl;
@@ -122,8 +123,6 @@ int main(){
 
 
 
-    delete avg;
-    delete err;
     delete[] irange[0];
     delete[] irange;
     delete mci;

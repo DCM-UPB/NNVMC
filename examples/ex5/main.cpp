@@ -2,14 +2,13 @@
 #include <cmath>
 #include <stdexcept>
 
-#include "vmc/WaveFunction.hpp"
 #include "vmc/Hamiltonian.hpp"
 #include "vmc/VMC.hpp"
-#include "vmc/NMSimplexOptimization.hpp"
-#include "ffnn/FeedForwardNeuralNetwork.hpp"
-#include "ffnn/ActivationFunctionManager.hpp"
-#include "ffnn/PrintUtilities.hpp"
-#include "FFNNWaveFunction.hpp"
+#include "vmc/MPIVMC.hpp"
+#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
+#include "ffnn/actf/ActivationFunctionManager.hpp"
+#include "ffnn/io/PrintUtilities.hpp"
+#include "nnvmc/FFNNWaveFunction.hpp"
 
 
 /*
@@ -43,6 +42,8 @@ public:
 int main(){
    using namespace std;
 
+   MPIVMC::Init();
+
    const int NSPACEDIM = 1;
    const int NHIDDENLAYERS = 1;
    const int HIDDENLAYERSIZE[NHIDDENLAYERS] = {10};
@@ -61,12 +62,6 @@ int main(){
            ffnn->getNNLayer(i)->getNNUnit(j)->setActivationFunction(std_actf::provideActivationFunction("TANS"));
        }
    }
-
-   //Set ACTF for output unit
-   ffnn->getNNLayer(NHIDDENLAYERS)->getNNUnit(0)->setActivationFunction(std_actf::provideActivationFunction("LGS"));
-
-   ffnn->getOutputLayer()->getOffsetUnit()->setProtoValue(0.); // disable output offset
-   ffnn->getOutputLayer()->getOutputNNUnit(0)->setScale(1.05); // allow the lgs a bit of freedom
 
    cout << "Created FFNN with " << NHIDDENLAYERS << " hidden layer(s) of ";
    for(int i=0; i<NHIDDENLAYERS; ++i) {cout << HIDDENLAYERSIZE[i] << ", ";} 
@@ -87,9 +82,8 @@ int main(){
 
 
    // Declare an Hamiltonian
-   // We use the harmonic oscillator with w=1 and w=2
+   // We use the harmonic oscillator with w=1
    double w1 = 1.0;
-   double w2 = 2.0;
 
    HarmonicOscillatorNDNP * ham = new HarmonicOscillatorNDNP(w1, psi);
 
@@ -110,6 +104,9 @@ int main(){
    cout << "Integration range: " << irange[0][0] << "   <->   " << irange[0][1] << endl << endl;
    vmc->getMCI()->setIRange(irange);
 
+   // for better performance:
+   vmc->getMCI()->setNdecorrelationSteps(1000);
+   vmc->getMCI()->setNfindMRT2steps(10);
 
    cout << "   Starting energy:" << endl;
    vmc->computeVariationalEnergy(E_NMC, energy, d_energy);
@@ -144,6 +141,8 @@ int main(){
    delete base_input;
    delete psi;
    delete ffnn;
+
+   MPIVMC::Finalize();
 
    return 0;
 }

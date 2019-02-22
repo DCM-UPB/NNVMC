@@ -33,4 +33,4 @@ Run it after the exe by `python plot.py` (requires matplotlib).
 
 ## Example 6
 
-`ex6/`: solve 1 dimension 1 particle harmonic oscillator using a Neural Network Wave Function and optimizing via the SR algorithm (using GSL).
+`ex6/`: solve 1 dimension 1 particle harmonic oscillator using a Neural Network Wave Function and optimizing via the Adam algorithm.
