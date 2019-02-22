@@ -26,8 +26,8 @@ protected:
    double _wsqh;
 
 public:
-   HarmonicOscillatorNDNP(const double w, WaveFunction * wf):
-     Hamiltonian(wf->getNSpaceDim() /*num space dimensions*/, wf->getNPart() /*num particles*/, wf) {
+   HarmonicOscillatorNDNP(const double w, WaveFunction * wf, const bool usePBKE = true):
+     Hamiltonian(wf->getNSpaceDim() /*num space dimensions*/, wf->getNPart() /*num particles*/, wf, usePBKE) {
      _n = wf->getNSpaceDim() * wf->getNPart();
      _wsqh = 0.5 * w * w;
    }
@@ -68,9 +68,9 @@ struct Model: public torch::nn::Module {
     torch::Tensor forward(torch::Tensor X)
     {
         // let's pass relu 
-        X = torch::sigmoid(in->forward(X));
-        X = torch::sigmoid(h->forward(X));
-        X = torch::sigmoid(out->forward(X));
+        X = torch::celu(in->forward(X));
+        X = torch::celu(h->forward(X));
+        X = torch::softplus(out->forward(X));
         
         // return the output
         return X;
@@ -92,26 +92,28 @@ int main(int argc, char **argv){
 
     using namespace std;
 
-    // defaults
-    long E_NMC = 250000l; // for energy evaluation at start/end
-    long G_NMC = 25000l; // for energy/gradient evaluations during optimization
-    int max_n_const = 100; // constant values to stop
+    // options
+    const long E_NMC = 100000l; // for energy evaluation at start/end
+    const long G_NMC = 25000l; // for energy/gradient evaluations during optimization
+    const int max_n_const = 100; // constant values to stop
+    const int nparticles = 16; // number of (independent) particles
 
     if (myrank == 0) {
         cout << "E_NMC = " << E_NMC << endl;
         cout << "G_NMC = " << G_NMC << endl;
         cout << "maxn const = " << max_n_const << endl;
+        cout << "nparticles = " << nparticles << endl;
     }
 
 
     // create pyTorch ANN
-    torch::nn::AnyModule anymodel(Model(1, 50, 1));
-    TorchNetwork wrappedANN(anymodel, 1, 1);
+    torch::nn::AnyModule anymodel(Model(nparticles, nparticles*6, 1));
+    TorchNetwork wrappedANN(anymodel, nparticles, 1);
 
 /*
     // create libffnn ANN
-    FeedForwardNeuralNetwork ffnn(2, 11, 2);
-    ffnn.pushHiddenLayer(11);
+    FeedForwardNeuralNetwork ffnn(nparticles+1, nparticles*6+1, 2);
+    ffnn.pushHiddenLayer(nparticles*6+1);
     ffnn.getOutputLayer()->getNNUnit(0)->setActivationFunction("LGS");
     ffnn.connectFFNN();
     ffnn.assignVariationalParameters();
@@ -122,22 +124,23 @@ int main(int argc, char **argv){
     wrappedANN.enableSecondDerivative();
     wrappedANN.enableVariationalFirstDerivative();
 
-    cout << "wrappedANN.getNInput() -> " << wrappedANN.getNInput() << endl;
-    cout << "wrappedANN.getNOutput() -> " << wrappedANN.getNOutput() << endl;
-    cout << "wrappedANN.getNVariationalParameters() -> " << wrappedANN.getNVariationalParameters() << endl;
-
     // Declare the trial wave function
-    SannifaWaveFunction * psi = new SannifaWaveFunction(1 /*space dimension*/, 1 /*#particles*/, &wrappedANN);
+    SannifaWaveFunction * psi = new SannifaWaveFunction(1 /*space dimension*/, nparticles, &wrappedANN);
     
     // do the same with old wrapper
-    //FFNNWaveFunction * psi = new FFNNWaveFunction(1, 1, &ffnn, true);
+    //FFNNWaveFunction * psi = new FFNNWaveFunction(1, nparticles, &ffnn, true);
+    if (myrank == 0) {
+        cout << "wrappedANN.getNInput() -> " << wrappedANN.getNInput() << endl;
+        cout << "wrappedANN.getNOutput() -> " << wrappedANN.getNOutput() << endl;
+        cout << "wrappedANN.getNVariationalParameters() -> " << wrappedANN.getNVariationalParameters() << endl;
 
-    cout << "psi->getNSpaceDim() -> " << psi->getNSpaceDim() << endl;
-    cout << "psi->getNPart() -> " << psi->getNPart() << endl;
+        cout << "psi->getNSpaceDim() -> " << psi->getNSpaceDim() << endl;
+        cout << "psi->getNPart() -> " << psi->getNPart() << endl;
+    }
 
     // Declare an Hamiltonian
     // We use the harmonic oscillator with w=1 and soft-core potential
-    HarmonicOscillatorNDNP * ham = new HarmonicOscillatorNDNP(1., psi);
+    HarmonicOscillatorNDNP * ham = new HarmonicOscillatorNDNP(1., psi, wrappedANN.hasSecondDerivative());
 
 
     NFMLogManager * log_manager;
@@ -155,10 +158,12 @@ int main(int argc, char **argv){
 
     // set an integration range, because the NN might be completely delocalized
     const double hrange = 5.;
-    double ** irange = new double*[1];
-    irange[0] = new double[2];
-    irange[0][0] = -hrange;
-    irange[0][1] = hrange;
+    double ** irange = new double*[nparticles];
+    for (int i=0; i<nparticles; ++i) {
+        irange[i] = new double[2];
+        irange[i][0] = -hrange;
+        irange[i][1] = hrange;
+    }
     if (myrank == 0) cout << "Integration range: " << irange[0][0] << "   <->   " << irange[0][1] << endl << endl;
     vmc->getMCI()->setIRange(irange);
 
@@ -176,7 +181,7 @@ int main(int argc, char **argv){
         cout << "   Optimization . . ." << endl;
     }
 
-    vmc->adamOptimization(G_NMC, false, false, max_n_const, false, 0.005, 0.002, 0.9, 0.9);
+    vmc->adamOptimization(G_NMC, false, false, max_n_const, false, 0.005, 0.01, 0.9, 0.9);
     if (myrank == 0) {
         cout << "   . . . Done!" << endl << endl;
 
@@ -192,8 +197,8 @@ int main(int argc, char **argv){
         cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl << endl;
     }
 
-    //delete [] irange[0];
-    //delete[] irange;
+    for (int i=0; i<nparticles; ++i) delete [] irange[i];
+    delete[] irange;
 
     delete vmc;
     delete ham;

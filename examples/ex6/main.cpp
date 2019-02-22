@@ -4,6 +4,7 @@
 
 #include "vmc/Hamiltonian.hpp"
 #include "vmc/VMC.hpp"
+
 #include "vmc/MPIVMC.hpp"
 #include "nfm/LogNFM.hpp"
 #include "ffnn/net/FeedForwardNeuralNetwork.hpp"
@@ -47,7 +48,7 @@ int main(){
 
    const int NSPACEDIM = 1;
    const int NPARTICLES = 1;
-   // /*
+
    const int NHIDDENLAYERS = 2;
    const int HIDDENLAYERSIZE[NHIDDENLAYERS] = {7,7};
    FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork(NSPACEDIM*NPARTICLES + 1, HIDDENLAYERSIZE[0], 2);
@@ -95,13 +96,17 @@ int main(){
    cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl;
 
    VMC * vmc; // VMC object we will resuse
+
    const long E_NMC = 50000l; // MC samplings to use for computing the energy or gradient
+
    cout << "E_NMC = " << E_NMC << endl << endl;
    double energy[4]; // energy
    double d_energy[4]; // energy error bar
 
    cout << "-> ham1:    w = " << w1 << endl << endl;
    vmc = new VMC(psi, ham);
+   vmc->getMCI()->setNfindMRT2steps(10);
+   vmc->getMCI()->setNdecorrelationSteps(1000);
 
    // to make the optimization run faster
    vmc->getMCI()->setNfindMRT2steps(10);
@@ -127,6 +132,7 @@ int main(){
    cout << "   Optimization . . ." << endl;
    vmc->adamOptimization(E_NMC, false /* don't use SR */, false /* don't calc gradient errors */, 25 /* stop after 25 constant values*/, true, 
        0.5 /*regularization*/, 0.01 /*alpha*/, 0.9 /*beta1*/, 0.9 /*beta2*/);
+
    cout << "   . . . Done!" << endl << endl;
 
    cout << "   Optimized energy:" << endl;

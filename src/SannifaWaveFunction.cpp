@@ -56,8 +56,10 @@ void SannifaWaveFunction::computeAllDerivatives(const double *in){
         _setD1DivByWF(id1, _ann->getFirstDerivative(0, id1) / wf_value);
     }
 
-    for (int id2=0; id2<getTotalNDim(); ++id2){
-        _setD2DivByWF(id2, _ann->getSecondDerivative(0, id2) / wf_value);
+    if (_ann->hasSecondDerivative()) {
+        for (int id2=0; id2<getTotalNDim(); ++id2){
+            _setD2DivByWF(id2, _ann->getSecondDerivative(0, id2) / wf_value);
+        }
     }
 
     if (hasVD1()){

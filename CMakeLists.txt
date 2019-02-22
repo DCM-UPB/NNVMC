@@ -56,9 +56,9 @@ find_package_handle_standard_args(libffnn_static DEFAULT_MSG FFNN_STATIC_LIBRARY
 
 find_path(SANNIFA_INCLUDE_DIR sannifa/ANNFunctionInterface.hpp HINTS "${SANNIFA_ROOT_DIR}/include/")
 find_library(SANNIFA_LIBRARY_DIR sannifa HINTS "${SANNIFA_ROOT_DIR}/build/src/")
-find_library(SANNIFA_STATIC_LIBRARY_DIR sannifa_static HINTS "${SANNIFA_ROOT_DIR}/build/src/")
+#find_library(SANNIFA_STATIC_LIBRARY_DIR sannifa_static HINTS "${SANNIFA_ROOT_DIR}/build/src/")
 find_package_handle_standard_args(libsannifa DEFAULT_MSG SANNIFA_LIBRARY_DIR SANNIFA_INCLUDE_DIR)
-find_package_handle_standard_args(libsannifa_static DEFAULT_MSG SANNIFA_STATIC_LIBRARY_DIR SANNIFA_INCLUDE_DIR)
+#find_package_handle_standard_args(libsannifa_static DEFAULT_MSG SANNIFA_STATIC_LIBRARY_DIR SANNIFA_INCLUDE_DIR)
 
 
 message(STATUS "Configured CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
