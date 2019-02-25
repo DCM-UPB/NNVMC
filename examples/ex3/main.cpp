@@ -7,6 +7,7 @@
 #include "vmc/VMC.hpp"
 #include "vmc/MPIVMC.hpp"
 #include "nfm/ConjGrad.hpp"
+#include "nfm/LogNFM.hpp"
 #include "nnvmc/FFNNWaveFunction.hpp"
 #include "ffnn/net/FeedForwardNeuralNetwork.hpp"
 #include "ffnn/io/PrintUtilities.hpp"
@@ -87,8 +88,8 @@ int main(){
     // set an integration range, because the NN might be completely delocalized
     double ** irange = new double*[1];
     irange[0] = new double[2];
-    irange[0][0] = -7.5;
-    irange[0][1] = 7.5;
+    irange[0][0] = -5.;
+    irange[0][1] = 5.;
     vmc->getMCI()->setIRange(irange);
 
     // auto-decorrelation doesn't work well with gradients, so set fixed nsteps
@@ -104,7 +105,9 @@ int main(){
     cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
 
 
-
+    // set logging
+    NFMLogManager log_manager;
+    log_manager.setLogLevel(1);
 
     cout << "   Optimization . . ." << endl;
     vmc->conjugateGradientOptimization(E_NMC, G_NMC);

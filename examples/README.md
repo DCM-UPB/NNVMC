@@ -1,9 +1,13 @@
 # LEGEND OF THE EXAMPLES
 
-Make sure the examples are compiled, by running `make examples` in the project root folder.
-Execute an example by switching into one of the example folders and running `./exe`.
-Some examples might also contain a `plot.py` script to show a plot.
-Run it after the exe by `python plot.py` (requires matplotlib).
+Make sure the examples are compiled, by running `./build.sh` in the project root folder.
+Execute an example by switching into one of the example folders and running `./run.sh`.
+Note that the actual example executables reside inside the `build/examples/` folder under the project's root.
+
+IMPORTANT:
+In the optimization examples, the FFNN are initialized completely randomly, which usually means that they
+are extremely bad wave functions initially. Consequently, successful optimization depends a bit on luck.
+Keep that in mind and restart the examples a few times if necessary.
 
 
 ## Example 1

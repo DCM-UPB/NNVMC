@@ -1,11 +1,12 @@
 from pylab import *
 
-data_r1 = genfromtxt("plot_opt_wf_r1.txt")
-data_r2 = genfromtxt("plot_opt_wf_r2.txt")
+data_init = genfromtxt("plot_init_wf.txt")
+data_opt = genfromtxt("plot_opt_wf.txt")
 
 figure()
 
-plot(data_r1[:,0], data_r1[:,1])
-plot(data_r2[:,0], data_r2[:,1])
+plot(data_init[:,0], data_init[:,1])
+plot(data_opt[:,0], data_opt[:,1])
+legend(["init", "opt"])
 
 show()
