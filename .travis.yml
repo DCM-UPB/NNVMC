@@ -27,7 +27,7 @@ matrix:
     env:
     - MYCXX="g++"
     - USE_DOCKER="FALSE"
-    - USE_GCOV="TRUE"
+    - USE_GCOV="FALSE"
 
   - os: osx
     osx_image: xcode10.1
@@ -105,14 +105,14 @@ script:
   if [[ "$USE_DOCKER" == "TRUE" ]]; then
   if [[ "$USE_GCOV" == "TRUE" ]]; then
   docker run -it -v $(pwd):/root/repo nnvmc/base /bin/bash -c "cd /root/repo/build && make test";
-  docker run -e TRAVIS=$TRAVIS -e TRAVIS_JOB_ID=$TRAVIS_JOB_ID -it -v $(pwd):/root/repo nnvmc/base /bin/bash -c "pip install cpp-coveralls && cd /root/repo/build && coveralls --verbose -b ./ -r ../ -i include -i src -x .cpp -x .hpp --gcov-options '\-lp'";
+  docker run -e TRAVIS=$TRAVIS -e TRAVIS_JOB_ID=$TRAVIS_JOB_ID -it -v $(pwd):/root/repo nnvmc/base /bin/bash -c "pip install cpp-coveralls && cd /root/repo/build && coveralls -b ./ -r ../ -i include -i src -x .cpp -x .hpp --gcov-options '\-lp'";
   else
   docker run -it -v $(pwd):/root/repo nnvmc/base /bin/bash -c "cd /root/repo/test && ./run.sh";
   fi;
   else
   if [[ "$USE_GCOV" == "TRUE" ]]; then
   cd build && make test;
-  sudo pip install cpp-coveralls && coveralls --verbose -b ./ -r ../ -i include -i src -x .cpp -x .hpp --gcov-options '\-lp' &>/dev/null && cd .. ;
+  sudo pip install cpp-coveralls && coveralls -b ./ -r ../ -i include -i src -x .cpp -x .hpp --gcov-options '\-lp' && cd .. ;
   else
   cd test && ./run.sh && cd .. ;
   fi;

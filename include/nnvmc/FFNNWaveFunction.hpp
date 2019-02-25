@@ -8,8 +8,8 @@
 
 
 
-class FFNNWaveFunction: public WaveFunction{
-
+class FFNNWaveFunction: public WaveFunction
+{
 private:
     FeedForwardNeuralNetwork * _bare_ffnn;   // FFNN without derivatives, used for sampling
     FeedForwardNeuralNetwork * _deriv_ffnn;   // FFNN with derivatives, used for computing all the derivatives
