@@ -2,85 +2,55 @@
 
 C++ Library for Variational Monte Carlo simulations using a Feed Forward Neural Network as trial wavefunction.
 
-To get you started, there is a user manual pdf in `doc/` and in `examples/` there are several basic examples.
+It is built upon our VMC++ (https://github.com/DCM-UPB/VMCPlusPlus) and FFNN (https://github.com/DCM-UPB/FeedForwardNeuralNetwork) libraries.
 
-Most subdirectories come with a `README.md` file, explaining the purpose and what you need to know.
+In `doc/` there is a user manual in pdf and a config for doxygen.
 
+In `examples/` and `test/` there are examples and tests for the library.
+
+
+Some subdirectories come with an own `README.md` file which provides further information.
 
 
 # Supported Systems
 
-Currently, we automatically test the library on Arch Linux (GCC 8) and MacOS (with clang as well as GCC).
-However, in principle any system with C++11 supporting compiler should work, at least if you manage to install all dependencies.
+Currently, we automatically test the library on Arch Linux (GCC 8) and MacOS (with clang as well as brewed GCC 8).
+However, in principle any system with C++11 supporting compiler should work.
 
+
+# Requirements
+
+- CMake, to use our build process
+- master versions of VMC++ (incl. MCI++, NoisyFunMin) and FFNN
+- GNU Scientific Library (~2.3+)
+- (optional) a MPI implementation, to use parallelized integration
+- (optional) valgrind, to run `./run.sh` in `test/`
+- (optional) pdflatex, to compile the tex file in `doc/`
+- (optional) doxygen, to generate doxygen documentation in `doc/doxygen`
 
 
 # Build the library
 
-Make sure you have all 4 NNVMC base libraries (FFNN, MCI, NFM and VMC++) installed in known paths.
-Also, we require the Autotools build system to be available.
-Optionally, if you have valgrind installed on your system, it will be used to check for memory errors when running unittests.
+Copy the file `config_template.sh` to `config.sh`, edit it to your liking and then simply execute the command
 
-If you have the libraries in non-standard paths or want to use custom compiler flags, copy a little script:
+   `./build.sh`
 
-   `cp script/config_template.sh config.sh`
-
-Now edit `config.sh` to your needs and before proceeding run:
-
-   `source config.sh`
-
-If you now have prepared your system, you may setup the build environment by using the following script:
-
-   `./autogen.sh`
-
-Now you want to configure the build process for your platform by invoking:
-
-   `./configure`
-
-Finally, you are ready to compile all the code files in our repository together, by:
-
-   `make` or `make -jN`
-
-where N is the number of parallel threads used by make. Alternatively, you may use the following make targets to build only subparts of the project:
-
-   `make lib`, `make test`, `make benchmark`, `make examples`
+Note that we build out-of-tree, so the compiled library and executable files can be found in the directories under `./build/`.
 
 
-As long as you changed, but didn't remove or add source files, it is sufficient to only run `make` again to rebuild.
+# First steps
 
-If you however removed old or added new code files under `src/`, you need to first update the source file lists and include links. Do so by invoking from root folder:
-
-   `make update-sources`
-
-NOTE: All the subdirectories of test, benchmark and examples support calling `make` inside them to recompile local changes.
+You may want to read `doc/user_manual.pdf` to get a quick overview of the libraries functionality. However, it is not guaranteed to be perfectly up-to-date and accurate. Therefore, the best way to get your own code started is by studying the examples in `examples/`. See `examples/README.md` for further guidance.
 
 
+# Multi-threading: MPI
 
-# Installation
+This library supports multi-threaded MC integration with a distributed-memory paradigm, thanks to Message Passing interface (MPI).
 
-To install the freshly built library and headers into the standard system paths, run (usually sudo is required):
-  `make install`
-
-If you however want to install the library under a custom path, before installing you have to use
-  `./configure --prefix=/your/absolute/path`
+To activate this feature, set `USE_MPI=1` inside your config.sh, before building. Please make sure that you always use the same value as you did when compiling the VMC++ library.
 
 
+# Multi-threading: OpenMP
 
-# Build options
-
-You may enable special compiler flags by using one or more of the following options after `configure`:
-
-   `--enable-debug` : Enables flags (like \-g and \-O0) suitable for debugging
-
-   `--enable-coverage` : Enables flags to generate test coverage reports via gcov
-
-   `--enable-profiling` : Enables flags to generate performance profiles for benchmarks
-
-
-
-
-## Multi-threading: OpenMP
-
-This library supports multi-threading computation with a shared memory paradigm, thanks to OpenMP.
-
-To activate this feature use `--enable-openmp` at configuration. Currently it is not recommended to use this for most cases.
+This used FFNN library also supports multi-threaded evaluation with a shared-memory paradigm, thanks to OpenMP. This feature can be enabled and disabled when compiling the FFNN library.
+If you are already using MPI for parallel MC integration, it is usually not beneficial to also use OpenMP for the FFNN.

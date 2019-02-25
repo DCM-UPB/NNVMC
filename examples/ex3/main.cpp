@@ -5,10 +5,12 @@
 #include "vmc/WaveFunction.hpp"
 #include "vmc/Hamiltonian.hpp"
 #include "vmc/VMC.hpp"
+#include "vmc/MPIVMC.hpp"
 #include "nfm/ConjGrad.hpp"
-#include "FFNNWaveFunction.hpp"
-#include "ffnn/FeedForwardNeuralNetwork.hpp"
-#include "ffnn/PrintUtilities.hpp"
+#include "nfm/LogNFM.hpp"
+#include "nnvmc/FFNNWaveFunction.hpp"
+#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
+#include "ffnn/io/PrintUtilities.hpp"
 
 
 
@@ -39,6 +41,8 @@ public:
 int main(){
     using namespace std;
 
+    MPIVMC::Init(); // to avoid error with MPI-compiled VMC library
+
     const int HIDDENLAYERSIZE = 15;
     const int NHIDDENLAYERS = 1;
     FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork(2, HIDDENLAYERSIZE, 2);
@@ -53,7 +57,7 @@ int main(){
 
     // Store in a .txt file the values of the initial wf, so that it is possible to plot it
     cout << "Writing the plot file of the initial wave function in plot_init_wf.txt" << endl << endl;
-    double * base_input = new double[psi->getBareFFNN()->getNInput()]; // no need to set it, since it is 1-dim
+    double base_input[psi->getBareFFNN()->getNInput()]; // no need to set it, since it is 1-dim
     const int input_i = 0;
     const int output_i = 0;
     const double min = -7.5;
@@ -73,12 +77,10 @@ int main(){
     cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl;
 
     VMC * vmc; // VMC object we will resuse
-    const long E_NMC = 5000l; // MC samplings to use for computing the energy
-    const long G_NMC = 10000l; // MC samplings to use for computing the energy gradient
-    double * energy = new double[4]; // energy
-    double * d_energy = new double[4]; // energy error bar
-    double * vp = new double[psi->getNVP()];
-
+    const long E_NMC = 20000l; // MC samplings to use for computing the energy
+    const long G_NMC = 50000l; // MC samplings to use for computing the energy gradient
+    double energy[4]; // energy
+    double d_energy[4]; // energy error bar
 
     cout << "-> ham1:    w = " << w1 << endl << endl;
     vmc = new VMC(psi, ham);
@@ -86,9 +88,13 @@ int main(){
     // set an integration range, because the NN might be completely delocalized
     double ** irange = new double*[1];
     irange[0] = new double[2];
-    irange[0][0] = -7.5;
-    irange[0][1] = 7.5;
+    irange[0][0] = -5.;
+    irange[0][1] = 5.;
     vmc->getMCI()->setIRange(irange);
+
+    // auto-decorrelation doesn't work well with gradients, so set fixed nsteps
+    vmc->getMCI()->setNdecorrelationSteps(1000);
+    vmc->getMCI()->setNfindMRT2steps(10); // we can also set a fixed amount of MRT2step adjustments (~1000 steps)
 
 
     cout << "   Starting energy:" << endl;
@@ -99,7 +105,9 @@ int main(){
     cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
 
 
-
+    // set logging
+    NFMLogManager log_manager;
+    log_manager.setLogLevel(1);
 
     cout << "   Optimization . . ." << endl;
     vmc->conjugateGradientOptimization(E_NMC, G_NMC);
@@ -122,15 +130,11 @@ int main(){
     delete[] irange[0];
     delete[] irange;
     delete vmc;
-    delete[] vp;
-    delete[] d_energy;
-    delete[] energy;
     delete ham;
-    delete base_input;
     delete psi;
     delete ffnn;
 
-
+    MPIVMC::Finalize();
 
     return 0;
 }

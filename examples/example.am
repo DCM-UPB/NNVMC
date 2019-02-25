@@ -1,7 +1,0 @@
-if !DEBUG
-  AM_CXXFLAGS += $(OPTFLAGS)
-endif
-
-noinst_PROGRAMS = exe
-exe_SOURCES = main.cpp
-exe_LDADD = -lnnvmc $(COM_LIBS)

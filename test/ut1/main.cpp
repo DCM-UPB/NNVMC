@@ -1,11 +1,12 @@
 #include "vmc/WaveFunction.hpp"
 #include "vmc/Hamiltonian.hpp"
 #include "vmc/VMC.hpp"
-#include "ffnn/FeedForwardNeuralNetwork.hpp"
-#include "ffnn/GaussianActivationFunction.hpp"
-#include "ffnn/IdentityActivationFunction.hpp"
-#include "ffnn/PrintUtilities.hpp"
-#include "FFNNWaveFunction.hpp"
+#include "vmc/MPIVMC.hpp"
+#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
+#include "ffnn/actf/GaussianActivationFunction.hpp"
+#include "ffnn/actf/IdentityActivationFunction.hpp"
+#include "ffnn/io/PrintUtilities.hpp"
+#include "nnvmc/FFNNWaveFunction.hpp"
 
 #include <iostream>
 #include <assert.h>
@@ -139,9 +140,11 @@ public:
 int main(){
     using namespace std;
 
+    MPIVMC::Init(); // to not throw error when libraries are MPI-compiled
+
     // parameters
-    const long Nmc = 100000l;
-    const double TINY = 0.000001;
+    const long Nmc = 20000l;
+    const double TINY = 0.00001;
 
     // variational parameters
     const double a = 0.37;
@@ -192,9 +195,11 @@ int main(){
 
     // --- Check that the energies are the same
     VMC * vmc = new VMC(psi, ham1);
+    vmc->getMCI()->setNfindMRT2steps(10);
+    vmc->getMCI()->setNdecorrelationSteps(1000);
 
-    double * energy = new double[4];
-    double * d_energy = new double[4];
+    double energy[4];
+    double d_energy[4];
     vmc->computeVariationalEnergy(Nmc, energy, d_energy);
     // cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
     // cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
@@ -202,9 +207,12 @@ int main(){
     // cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
 
 
-    double energy_check[4]; for (int i=0; i<4; ++i) energy_check[i] = 0.;
-    double d_energy_check[4]; for (int i=0; i<4; ++i) d_energy_check[i] = 0.;
     VMC * vmc_check = new VMC(phi, ham2);
+    vmc_check->getMCI()->setNfindMRT2steps(10);
+    vmc_check->getMCI()->setNdecorrelationSteps(1000);
+
+    double energy_check[4];
+    double d_energy_check[4];
     vmc_check->computeVariationalEnergy(Nmc, energy_check, d_energy_check);
     // cout << "       Total Energy        = " << energy_check[0] << " +- " << d_energy_check[0] << endl;
     // cout << "       Potential Energy    = " << energy_check[1] << " +- " << d_energy_check[1] << endl;
@@ -212,7 +220,7 @@ int main(){
     // cout << "       Kinetic (JF) Energy = " << energy_check[3] << " +- " << d_energy_check[3] << endl << endl;
 
     for (int i=0; i<4; ++i){
-        assert(abs(energy[i]-energy_check[i]) < 2.*(d_energy[i]+d_energy_check[i]));
+        assert( abs(energy[i]-energy_check[i]) < 3.*sqrt(d_energy[i]*d_energy[i]+d_energy_check[i]*d_energy_check[i]) );
     }
 
 
@@ -247,8 +255,6 @@ int main(){
 
 
     // free resources
-    delete[] energy;
-    delete[] d_energy;
     delete vmc_check;
     delete vmc;
     delete ham1;
@@ -257,6 +263,7 @@ int main(){
     delete psi;
     delete ffnn;
 
+    MPIVMC::Finalize();
 
     return 0;
 }

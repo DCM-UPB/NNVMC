@@ -2,14 +2,14 @@
 #include <cmath>
 #include <stdexcept>
 
-#include "vmc/WaveFunction.hpp"
 #include "vmc/Hamiltonian.hpp"
 #include "vmc/VMC.hpp"
-#include "vmc/NMSimplexOptimization.hpp"
-#include "ffnn/FeedForwardNeuralNetwork.hpp"
-#include "ffnn/ActivationFunctionManager.hpp"
-#include "ffnn/PrintUtilities.hpp"
-#include "FFNNWaveFunction.hpp"
+#include "vmc/MPIVMC.hpp"
+#include "nfm/LogNFM.hpp"
+#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
+#include "ffnn/actf/ActivationFunctionManager.hpp"
+#include "ffnn/io/PrintUtilities.hpp"
+#include "nnvmc/FFNNWaveFunction.hpp"
 
 
 /*
@@ -43,11 +43,13 @@ public:
 int main(){
    using namespace std;
 
+   MPIVMC::Init();
+
    const int NSPACEDIM = 1;
-   const int NPARTICLES = 2;
+   const int NPARTICLES = 1;
    // /*
-   const int NHIDDENLAYERS = 1;
-   const int HIDDENLAYERSIZE[NHIDDENLAYERS] = {7};//,3};
+   const int NHIDDENLAYERS = 2;
+   const int HIDDENLAYERSIZE[NHIDDENLAYERS] = {7,7};
    FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork(NSPACEDIM*NPARTICLES + 1, HIDDENLAYERSIZE[0], 2);
    for (int i=1; i<NHIDDENLAYERS; ++i){
       ffnn->pushHiddenLayer(HIDDENLAYERSIZE[i]);
@@ -55,25 +57,20 @@ int main(){
    ffnn->connectFFNN();
    ffnn->assignVariationalParameters();
 
-   //Set ACTFs for hidden units
+   //Set ACTFs for hidden units (default LGS)
    for (int i=0; i<NHIDDENLAYERS; ++i) {
        for (int j=0; j<HIDDENLAYERSIZE[i]-1; ++j) {
-           ffnn->getNNLayer(i)->getNNUnit(j)->setActivationFunction(std_actf::provideActivationFunction("LGS"));
+           ffnn->getNNLayer(i)->getNNUnit(j)->setActivationFunction(std_actf::provideActivationFunction("TANS"));
        }
-       //ffnn->getNNLayer(i)->getOffsetUnit()->setProtoValue(0.);
    }
 
-   //Set ACTF for output unit
-   ffnn->getNNLayer(NHIDDENLAYERS)->getNNUnit(0)->setActivationFunction(std_actf::provideActivationFunction("LGS"));
+   //Set ACTF for output unit (default LGS)
+   ffnn->getNNLayer(NHIDDENLAYERS)->getNNUnit(0)->setActivationFunction(std_actf::provideActivationFunction("EXP"));
 
-   ffnn->getOutputLayer()->getOffsetUnit()->setProtoValue(0.); // disable output offset
-   ffnn->getOutputLayer()->getOutputNNUnit(0)->setScale(1.05); // allow the lgs a bit of freedom
 
    cout << "Created FFNN with " << NHIDDENLAYERS << " hidden layer(s) of ";
    for(int i=0; i<NHIDDENLAYERS; ++i) {cout << HIDDENLAYERSIZE[i] << ", ";}
    cout << " units each." << endl << endl;
-   // */
-   //FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork("nn.in");
 
    // Declare the trial wave functions
    FFNNWaveFunction * psi = new FFNNWaveFunction(NSPACEDIM, NPARTICLES, ffnn, true, false, false);
@@ -85,28 +82,30 @@ int main(){
    const double min = -5.;
    const double max = 5.;
    const int npoints = 100;
-   writePlotFile(psi->getBareFFNN(), base_input, 0, 0, min, max, npoints, "getOutput", "plot_init_wf_r1.txt");
-   writePlotFile(psi->getBareFFNN(), base_input, 1, 0, min, max, npoints, "getOutput", "plot_init_wf_r2.txt");
+   writePlotFile(psi->getBareFFNN(), base_input, 0, 0, min, max, npoints, "getOutput", "plot_init_wf.txt");
    psi->getBareFFNN()->storeOnFile("wf_init.txt");
 
 
    // Declare an Hamiltonian
-   // We use the harmonic oscillator with w=1 and w=2
+   // We use the harmonic oscillator with w=1
    double w1 = 1.0;
-   double w2 = 2.0;
 
    HarmonicOscillatorNDNP * ham = new HarmonicOscillatorNDNP(w1, psi);
 
    cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl;
 
    VMC * vmc; // VMC object we will resuse
-   const long E_NMC = 200000l; // MC samplings to use for computing the energy
+   const long E_NMC = 50000l; // MC samplings to use for computing the energy or gradient
    cout << "E_NMC = " << E_NMC << endl << endl;
    double energy[4]; // energy
    double d_energy[4]; // energy error bar
 
    cout << "-> ham1:    w = " << w1 << endl << endl;
    vmc = new VMC(psi, ham);
+
+   // to make the optimization run faster
+   vmc->getMCI()->setNfindMRT2steps(10);
+   vmc->getMCI()->setNdecorrelationSteps(1000);
 
    // set an integration range, because the NN might be completely delocalized
    double ** irange = new double*[NSPACEDIM*NPARTICLES];
@@ -122,8 +121,12 @@ int main(){
    cout << "       Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
    cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
 
+   NFMLogManager log_manager;
+   log_manager.setLogLevel(1);
+
    cout << "   Optimization . . ." << endl;
-   vmc->stochasticReconfigurationOptimization(E_NMC);
+   vmc->adamOptimization(E_NMC, false /* don't use SR */, false /* don't calc gradient errors */, 25 /* stop after 25 constant values*/, true, 
+       0.5 /*regularization*/, 0.01 /*alpha*/, 0.9 /*beta1*/, 0.9 /*beta2*/);
    cout << "   . . . Done!" << endl << endl;
 
    cout << "   Optimized energy:" << endl;
@@ -137,8 +140,7 @@ int main(){
    // Store in two files the the initial wf, one for plotting, and for recovering it as nn
 
    cout << "Writing the plot file of the optimised wave function in (plot_)opt_wf.txt" << endl << endl;
-   writePlotFile(psi->getBareFFNN(), base_input, 0, 0, min, max, npoints, "getOutput", "plot_opt_wf_r1.txt");
-   writePlotFile(psi->getBareFFNN(), base_input, 1, 0, min, max, npoints, "getOutput", "plot_opt_wf_r2.txt");
+   writePlotFile(psi->getBareFFNN(), base_input, 0, 0, min, max, npoints, "getOutput", "plot_opt_wf.txt");
    psi->getBareFFNN()->storeOnFile("wf_opt.txt");
 
 
@@ -149,6 +151,8 @@ int main(){
    delete base_input;
    delete psi;
    delete ffnn;
+
+   MPIVMC::Finalize();
 
    return 0;
 }
