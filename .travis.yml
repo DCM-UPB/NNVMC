@@ -1,0 +1,124 @@
+dist: xenial
+language: c++
+services:
+- docker
+
+addons:
+  apt:
+    packages:
+    - valgrind
+    - libgsl-dev
+
+  homebrew:
+    packages:
+    - valgrind
+    - gsl
+
+matrix:
+  include:
+  - os: linux // arch linux docker
+    env:
+    - MYCXX="g++"
+    - USE_DOCKER="TRUE"
+    - USE_GCOV="FALSE"
+
+  - os: osx
+    osx_image: xcode10.1
+    env:
+    - MYCXX="g++"
+    - USE_DOCKER="FALSE"
+    - USE_GCOV="TRUE"
+
+  - os: osx
+    osx_image: xcode10.1
+    env:
+    - MYCXX="clang++"
+    - USE_DOCKER="FALSE"
+    - USE_GCOV="FALSE"
+
+before_install:
+- |
+  if [[ "$USE_DOCKER" == "TRUE" ]]; then
+  docker pull nnvmc/base;
+  else
+  ${MYCXX} -v;
+  fi;
+  echo "CXX_COMPILER=${MYCXX}" >> config.sh;
+  echo "CXX_FLAGS=\"-O0 -g -Wall -Wno-unused-function ${configopt}\"" >> config.sh;
+  if [[ "$USE_GCOV" == "TRUE" ]]; then
+  echo "USE_COVERAGE=1" >> config.sh;
+  else
+  echo "USE_COVERAGE=0" >> config.sh;
+  fi;
+  echo "USE_MPI=0" >> config.sh;
+  echo "USE_OPENMP=0" >> config.sh;
+  if [[ "$USE_DOCKER" == "TRUE" ]]; then
+  echo "MCI_ROOT=/root/repo/MCIntegratorPlusPlus/" >> config.sh;
+  echo "NFM_ROOT=/root/repo/NoisyFunMin/" >> config.sh;
+  echo "VMC_ROOT=/root/repo/VMCPlusPlus/" >> config.sh;
+  echo "FFNN_ROOT=/root/repo/FeedForwardNeuralNetwork/" >> config.sh;
+  else
+  echo "MCI_ROOT=$(pwd)/MCIntegratorPlusPlus/" >> config.sh;
+  echo "NFM_ROOT=$(pwd)/NoisyFunMin/" >> config.sh;
+  echo "VMC_ROOT=$(pwd)/VMCPlusPlus/" >> config.sh;
+  echo "FFNN_ROOT=$(pwd)/FeedForwardNeuralNetwork/" >> config.sh;
+  fi;
+  echo "GSL_ROOT=" >> config.sh;
+
+- |
+  if [[ "$USE_DOCKER" == "TRUE" ]]; then
+  docker run -it -v $(pwd):/root/repo nnvmc/base /bin/bash -c "cd /root/repo && git clone https://github.com/DCM-UPB/MCIntegratorPlusPlus.git && cp config.sh MCIntegratorPlusPlus/ && cd MCIntegratorPlusPlus && ./build.sh" || exit 1;
+  else
+  git clone https://github.com/DCM-UPB/MCIntegratorPlusPlus.git && cp config.sh MCIntegratorPlusPlus/ && cd MCIntegratorPlusPlus && ./build.sh && cd .. || exit 1;
+  fi;
+
+- |
+  if [[ "$USE_DOCKER" == "TRUE" ]]; then
+  docker run -it -v $(pwd):/root/repo nnvmc/base /bin/bash -c "cd /root/repo && git clone https://github.com/DCM-UPB/NoisyFunMin.git && cp config.sh NoisyFunMin/ && cd NoisyFunMin && ./build.sh" || exit 1;
+  else
+  git clone https://github.com/DCM-UPB/NoisyFunMin.git && cp config.sh NoisyFunMin/ && cd NoisyFunMin && ./build.sh && cd .. || exit 1;
+  fi;
+
+- |
+  if [[ "$USE_DOCKER" == "TRUE" ]]; then
+  docker run -it -v $(pwd):/root/repo nnvmc/base /bin/bash -c "cd /root/repo && git clone https://github.com/DCM-UPB/VMCPlusPlus.git && cp config.sh VMCPlusPlus/ && cd VMCPlusPlus && ./build.sh" || exit 1;
+  else
+  git clone https://github.com/DCM-UPB/VMCPlusPlus.git && cp config.sh VMCPlusPlus/ && cd VMCPlusPlus && ./build.sh && cd .. || exit 1;
+  fi;
+
+- |
+  if [[ "$USE_DOCKER" == "TRUE" ]]; then
+  docker run -it -v $(pwd):/root/repo nnvmc/base /bin/bash -c "cd /root/repo && git clone https://github.com/DCM-UPB/FeedForwardNeuralNetwork.git && cp config.sh FeedForwardNeuralNetwork/ && cd FeedForwardNeuralNetwork && ./build.sh" || exit 1;
+  else
+  git clone https://github.com/DCM-UPB/FeedForwardNeuralNetwork.git && cp config.sh FeedForwardNeuralNetwork/ && cd FeedForwardNeuralNetwork && ./build.sh && cd .. || exit 1;
+  fi;
+
+script:
+- |
+  if [[ "$USE_DOCKER" == "TRUE" ]]; then
+  docker run -it -v $(pwd):/root/repo nnvmc/base /bin/bash -c "cd /root/repo && ./build.sh" || exit 1;
+  else
+  ./build.sh || exit 1;
+  fi;
+
+- |
+  if [[ "$USE_DOCKER" == "TRUE" ]]; then
+  if [[ "$USE_GCOV" == "TRUE" ]]; then
+  docker run -it -v $(pwd):/root/repo nnvmc/base /bin/bash -c "cd /root/repo/build && make test";
+  docker run -e TRAVIS=$TRAVIS -e TRAVIS_JOB_ID=$TRAVIS_JOB_ID -it -v $(pwd):/root/repo nnvmc/base /bin/bash -c "pip install cpp-coveralls && cd /root/repo/build && coveralls --verbose -b ./ -r ../ -i include -i src -x .cpp -x .hpp --gcov-options '\-lp'";
+  else
+  docker run -it -v $(pwd):/root/repo nnvmc/base /bin/bash -c "cd /root/repo/test && ./run.sh";
+  fi;
+  else
+  if [[ "$USE_GCOV" == "TRUE" ]]; then
+  cd build && make test;
+  sudo pip install cpp-coveralls && coveralls --verbose -b ./ -r ../ -i include -i src -x .cpp -x .hpp --gcov-options '\-lp' &>/dev/null && cd .. ;
+  else
+  cd test && ./run.sh && cd .. ;
+  fi;
+  fi;
+
+notifications:
+  email:
+    on_success: change
+    on_failure: change
