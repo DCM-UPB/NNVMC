@@ -3,7 +3,7 @@ include(FindPackageHandleStandardArgs)
 
 project (nnvmc LANGUAGES CXX VERSION 0.0.1)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${USER_CXX_FLAGS}")
@@ -16,7 +16,7 @@ endif()
 message(STATUS "Configured MCI_ROOT_DIR: ${MCI_ROOT_DIR}")
 message(STATUS "Configured NFM_ROOT_DIR: ${NFM_ROOT_DIR}")
 message(STATUS "Configured VMC_ROOT_DIR: ${VMC_ROOT_DIR}")
-message(STATUS "Configured FFNN_ROOT_DIR: ${FFNN_ROOT_DIR}")
+message(STATUS "Configured QNETS_ROOT_DIR: ${QNETS_ROOT_DIR}")
 message(STATUS "Configured SANNIFA_ROOT_DIR: ${SANNIFA_ROOT_DIR}")
 message(STATUS "Configured GSL_ROOT_DIR: ${GSL_ROOT_DIR}")
 
@@ -48,11 +48,11 @@ find_library(VMC_STATIC_LIBRARY_DIR vmc_static HINTS "${VMC_ROOT_DIR}/build/src/
 find_package_handle_standard_args(libvmc DEFAULT_MSG VMC_LIBRARY_DIR VMC_INCLUDE_DIR)
 find_package_handle_standard_args(libvmc_static DEFAULT_MSG VMC_STATIC_LIBRARY_DIR VMC_INCLUDE_DIR)
 
-find_path(FFNN_INCLUDE_DIR ffnn/net/FeedForwardNeuralNetwork.hpp HINTS "${FFNN_ROOT_DIR}/include/")
-find_library(FFNN_LIBRARY_DIR ffnn HINTS "${FFNN_ROOT_DIR}/build/src/")
-find_library(FFNN_STATIC_LIBRARY_DIR ffnn_static HINTS "${FFNN_ROOT_DIR}/build/src/")
-find_package_handle_standard_args(libffnn DEFAULT_MSG FFNN_LIBRARY_DIR FFNN_INCLUDE_DIR)
-find_package_handle_standard_args(libffnn_static DEFAULT_MSG FFNN_STATIC_LIBRARY_DIR FFNN_INCLUDE_DIR)
+find_path(QNETS_INCLUDE_DIR qnets/poly/FeedForwardNeuralNetwork.hpp HINTS "${QNETS_ROOT_DIR}/include/")
+find_library(QNETS_LIBRARY_DIR qnets HINTS "${QNETS_ROOT_DIR}/build/src/")
+find_library(QNETS_STATIC_LIBRARY_DIR qnets_static HINTS "${QNETS_ROOT_DIR}/build/src/")
+find_package_handle_standard_args(libqnets DEFAULT_MSG QNETS_LIBRARY_DIR QNETS_INCLUDE_DIR)
+find_package_handle_standard_args(libqnets_static DEFAULT_MSG QNETS_STATIC_LIBRARY_DIR QNETS_INCLUDE_DIR)
 
 find_path(SANNIFA_INCLUDE_DIR sannifa/ANNFunctionInterface.hpp HINTS "${SANNIFA_ROOT_DIR}/include/")
 find_library(SANNIFA_LIBRARY_DIR sannifa HINTS "${SANNIFA_ROOT_DIR}/build/src/")
@@ -65,11 +65,11 @@ message(STATUS "Configured CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
 message(STATUS "Configured CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 # set header / library paths
-include_directories(include/ ${MCI_INCLUDE_DIR} ${NFM_INCLUDE_DIR} ${VMC_INCLUDE_DIR} ${FFNN_INCLUDE_DIR} ${SANNIFA_INCLUDE_DIR}) # headers
+include_directories(include/ ${MCI_INCLUDE_DIR} ${NFM_INCLUDE_DIR} ${VMC_INCLUDE_DIR} ${QNETS_INCLUDE_DIR} ${SANNIFA_INCLUDE_DIR}) # headers
 
 enable_testing()
 
 # continue with subdirectories
 add_subdirectory(src) 
 add_subdirectory(test)
-add_subdirectory(examples)
+#add_subdirectory(examples)

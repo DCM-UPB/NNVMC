@@ -2,11 +2,12 @@
 #include "vmc/Hamiltonian.hpp"
 #include "vmc/VMC.hpp"
 #include "vmc/MPIVMC.hpp"
-#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
-#include "ffnn/actf/GaussianActivationFunction.hpp"
-#include "ffnn/actf/IdentityActivationFunction.hpp"
-#include "ffnn/io/PrintUtilities.hpp"
-#include "nnvmc/FFNNWaveFunction.hpp"
+#include "qnets/poly/FeedForwardNeuralNetwork.hpp"
+#include "qnets/poly/actf/GaussianActivationFunction.hpp"
+#include "qnets/poly/actf/IdentityActivationFunction.hpp"
+#include "qnets/poly/io/PrintUtilities.hpp"
+#include "sannifa/QPolyWrapper.hpp"
+#include "nnvmc/ANNWaveFunction.hpp"
 
 #include <iostream>
 #include <assert.h>
@@ -16,7 +17,8 @@
 
 /*
 
-  In this unit test we test that the FFNNWaveFunction works as expected.
+  In this test we check that the ANNWaveFunction works as expected,
+  using the Sannifa-wrapped QNets/PolyNet as backend.
   In particular we want to be sure that all the derivatives are computed properly.
 
   To accomplish this, we are following this approach.
@@ -64,22 +66,26 @@
   Hamiltonian describing a 1-particle harmonic oscillator:
   H  =  p^2 / 2m  +  1/2 * w^2 * x^2
 */
-class HarmonicOscillator1D1P: public Hamiltonian{
+class HarmonicOscillator1D1P: public vmc::Hamiltonian{
 
 protected:
     double _w;
 
+    mci::ObservableFunctionInterface * _clone() const final
+    {
+        return new HarmonicOscillator1D1P(_w);
+    }
+
 public:
-    HarmonicOscillator1D1P(const double w, WaveFunction * wf):
-        Hamiltonian(1 /*num space dimensions*/, 1 /*num particles*/, wf) {_w=w;}
+    explicit HarmonicOscillator1D1P(double w):
+            vmc::Hamiltonian(1 /*num space dimensions*/, 1 /*num particles*/) { _w = w; }
 
     // potential energy
-    double localPotentialEnergy(const double *r)
+    double localPotentialEnergy(const double * r) final
     {
         return (0.5*_w*_w*(*r)*(*r));
     }
 };
-
 
 
 /*
@@ -87,50 +93,64 @@ public:
   Psi  =  exp( -b * (x-a)^2 )
   Notice that the corresponding probability density (sampling function) is Psi^2.
 */
-class QuadrExponential1D1POrbital: public WaveFunction{
+class QuadrExponential1D1POrbital: public vmc::WaveFunction
+{
 protected:
     double _a, _b;
 
+    mci::SamplingFunctionInterface * _clone() const final
+    {
+        return new QuadrExponential1D1POrbital(_a, _b, this->hasVD1());
+    }
+
 public:
-    QuadrExponential1D1POrbital(const double a, const double b):
-    WaveFunction(1 /*num space dimensions*/, 1 /*num particles*/, 1 /*num wf components*/, 2 /*num variational parameters*/, true /*VD1*/, false /*D1VD1*/, false /*D2VD1*/) {
-            _a=a; _b=b;
-        }
-
-    void setVP(const double *in){
-        _a=in[0];
-        _b=in[1];
+    QuadrExponential1D1POrbital(double a, double b, bool flag_vd1 = false):
+            vmc::WaveFunction(1 /*num space dimensions*/, 1 /*num particles*/, 1 /*num wf components*/, 2 /*num variational parameters*/, flag_vd1 /*VD1*/, false /*D1VD1*/, false /*D2VD1*/)
+    {
+        _a = a;
+        _b = b;
     }
 
-    void getVP(double *out){
-        out[0]=_a;
-        out[1]=_b;
+    void setVP(const double * in) final
+    {
+        _a = in[0];
+        _b = in[1];
     }
 
-    void samplingFunction(const double *x, double *out){
+    void getVP(double * out) const final
+    {
+        out[0] = _a;
+        out[1] = _b;
+    }
+
+    void protoFunction(const double * x, double * out) final
+    {
         /*
-          Compute the sampling function proto value, used in getAcceptance()
+          Compute the sampling function proto value, used in acceptanceFunction()
         */
-        *out = -2.*(_b*(x[0]-_a)*(x[0]-_a));
+        *out = -2.*(_b*(x[0] - _a)*(x[0] - _a));
     }
 
-    double getAcceptance(const double * protoold, const double * protonew){
+    double acceptanceFunction(const double * protoold, const double * protonew) const final
+    {
         /*
           Compute the acceptance probability
         */
-        return exp(protonew[0]-protoold[0]);
+        return exp(protonew[0] - protoold[0]);
     }
 
-    void computeAllDerivatives(const double *x){
-        _setD1DivByWF(0, -2.*_b*(x[0]-_a));
-        _setD2DivByWF(0, -2.*_b + (-2.*_b*(x[0]-_a))*(-2.*_b*(x[0]-_a)));
-        if (hasVD1()){
-            _setVD1DivByWF(0, 2.*_b*(x[0]-_a));
-            _setVD1DivByWF(1, -(x[0]-_a)*(x[0]-_a));
+    void computeAllDerivatives(const double * x) final
+    {
+        _setD1DivByWF(0, -2.*_b*(x[0] - _a));
+        _setD2DivByWF(0, -2.*_b + (-2.*_b*(x[0] - _a))*(-2.*_b*(x[0] - _a)));
+        if (hasVD1()) {
+            _setVD1DivByWF(0, 2.*_b*(x[0] - _a));
+            _setVD1DivByWF(1, -(x[0] - _a)*(x[0] - _a));
         }
     }
 
-    double computeWFValue(const double * protovalues){
+    double computeWFValue(const double * protovalues) const final
+    {
         return exp(0.5*protovalues[0]);
     }
 };
@@ -155,65 +175,62 @@ int main(){
 
 
 
+    // create the QNets PolyNet with the right structure and parameters
+    FeedForwardNeuralNetwork ffnn(2, 2, 2);
+    ffnn.getNNLayer(0)->setActivationFunction(new GaussianActivationFunction());
+    ffnn.getNNLayer(1)->setActivationFunction(new IdentityActivationFunction());
+    ffnn.connectFFNN();
+    ffnn.assignVariationalParameters(); // make all betas variational
 
-    // create the NN with the right structure and parameters
-    FeedForwardNeuralNetwork * ffnn = new FeedForwardNeuralNetwork(2, 2, 2);
-    GaussianActivationFunction * gss_actf = new GaussianActivationFunction();
-    IdentityActivationFunction * id_actf = new IdentityActivationFunction();
-    ffnn->getNNLayer(0)->setActivationFunction(gss_actf);
-    ffnn->getNNLayer(1)->setActivationFunction(id_actf);
-    ffnn->connectFFNN();
-    ffnn->assignVariationalParameters(); // make all betas variational
-
-    ffnn->setVariationalParameter(0, p1);
-    ffnn->setVariationalParameter(1, p2);
-    ffnn->setVariationalParameter(2, 0.);
-    ffnn->setVariationalParameter(3, 1.);
+    ffnn.setVariationalParameter(0, p1);
+    ffnn.setVariationalParameter(1, p2);
+    ffnn.setVariationalParameter(2, 0.);
+    ffnn.setVariationalParameter(3, 1.);
 
     // printFFNNStructure(ffnn);
-    // printFFNNStructureWithBeta(ffnn);
 
+    // wrap ffnn by sannifa wrapper (to match interfaces)
+    // and enable required derivatives
+    QPolyWrapper wrapper(ffnn);
+    wrapper.enableFirstDerivative();
+    wrapper.enableSecondDerivative();
+    wrapper.enableVariationalFirstDerivative();
 
     // NN wave function
     const int n = 1;
-    FFNNWaveFunction * psi = new FFNNWaveFunction(n, n, ffnn, true, false, false);
-    assert(psi->hasVD1());
-    assert(!psi->hasD1VD1());
-    assert(!psi->hasD2VD1());
+    ANNWaveFunction<QPolyWrapper> psi(n, n, wrapper);
+    assert(psi.hasVD1());
+    assert(!psi.hasD1VD1());
+    assert(!psi.hasD2VD1());
 
     // gaussian wave function
-    QuadrExponential1D1POrbital * phi = new QuadrExponential1D1POrbital(a, b);
+    QuadrExponential1D1POrbital phi(a, b, true);
 
     // Hamiltonians
-    HarmonicOscillator1D1P * ham1 = new HarmonicOscillator1D1P(1., psi);
-    HarmonicOscillator1D1P * ham2 = new HarmonicOscillator1D1P(1., phi);
-
-
-
+    HarmonicOscillator1D1P ham(1.);
 
 
 
     // --- Check that the energies are the same
-    VMC * vmc = new VMC(psi, ham1);
-    vmc->getMCI()->setNfindMRT2steps(10);
-    vmc->getMCI()->setNdecorrelationSteps(1000);
+    using namespace vmc;
+    VMC vmc(psi, ham);
+    vmc.getMCI().setSeed(1337);
 
     double energy[4];
     double d_energy[4];
-    vmc->computeVariationalEnergy(Nmc, energy, d_energy);
+    vmc.computeEnergy(Nmc, energy, d_energy);
     // cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
     // cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
     // cout << "       Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
     // cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
 
 
-    VMC * vmc_check = new VMC(phi, ham2);
-    vmc_check->getMCI()->setNfindMRT2steps(10);
-    vmc_check->getMCI()->setNdecorrelationSteps(1000);
+    VMC vmc_check(phi, ham);
+    vmc.getMCI().setSeed(1337);
 
     double energy_check[4];
     double d_energy_check[4];
-    vmc_check->computeVariationalEnergy(Nmc, energy_check, d_energy_check);
+    vmc_check.computeEnergy(Nmc, energy_check, d_energy_check);
     // cout << "       Total Energy        = " << energy_check[0] << " +- " << d_energy_check[0] << endl;
     // cout << "       Potential Energy    = " << energy_check[1] << " +- " << d_energy_check[1] << endl;
     // cout << "       Kinetic (PB) Energy = " << energy_check[2] << " +- " << d_energy_check[2] << endl;
@@ -224,24 +241,22 @@ int main(){
     }
 
 
-
-
-
-
     // --- Check the variational derivatives
     const double dx=0.2;
     double x = -1.;
     for (int i=0; i<10; ++i){
         x = x + dx;
 
-        phi->computeAllDerivatives(&x);
-        psi->computeAllDerivatives(&x);
+        phi.computeAllDerivatives(&x);
+        psi.computeAllDerivatives(&x);
 
-        const double dda_phi = phi->getVD1DivByWF(0);
-        const double ddb_phi = phi->getVD1DivByWF(1);
+        const double dda_phi = phi.getVD1DivByWF(0);
+        const double ddb_phi = phi.getVD1DivByWF(1);
 
-        const double ddp1_psi = psi->getVD1DivByWF(0);
-        const double ddp2_psi = psi->getVD1DivByWF(1);
+
+        const double ddp1_psi = psi.getVD1DivByWF(0);
+        const double ddp2_psi = psi.getVD1DivByWF(1);
+
 
         // cout << dda_phi << " == " << - ddp1_psi * sqrtb << " ? " << endl;
         assert( abs(dda_phi - ( - ddp1_psi * sqrtb )) < TINY );
@@ -249,19 +264,6 @@ int main(){
         // cout << ddb_phi << " == " << ddp2_psi / (2. * sqrtb) - ddp1_psi * a / (2. * sqrtb) << " ? " << endl;
         assert( abs(ddb_phi - ( ddp2_psi / (2. * sqrtb) - ddp1_psi * a / (2. * sqrtb) ) ) < TINY );
     }
-
-
-
-
-
-    // free resources
-    delete vmc_check;
-    delete vmc;
-    delete ham1;
-    delete ham2;
-    delete phi;
-    delete psi;
-    delete ffnn;
 
     MPIVMC::Finalize();
 
