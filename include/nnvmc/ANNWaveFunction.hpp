@@ -10,6 +10,8 @@
 // ANNWaveFunction implements a vmc::WaveFunction based on a
 // ANN function of type ANNType. ANNType is expected to derive
 // from or behave like a Sannifa wrapper (see sannifa library).
+// -> You are not required to derive from Sannifa, but doing so
+// guarantees compatibility with this template.
 template <class ANNType>
 class ANNWaveFunction final: public vmc::WaveFunction{
 
