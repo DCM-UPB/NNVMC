@@ -66,7 +66,8 @@
   Hamiltonian describing a 1-particle harmonic oscillator:
   H  =  p^2 / 2m  +  1/2 * w^2 * x^2
 */
-class HarmonicOscillator1D1P: public vmc::Hamiltonian{
+class HarmonicOscillator1D1P: public vmc::Hamiltonian
+{
 
 protected:
     double _w;
@@ -156,8 +157,8 @@ public:
 };
 
 
-
-int main(){
+int main()
+{
     using namespace std;
 
     MPIVMC::Init(); // to not throw error when libraries are MPI-compiled
@@ -169,8 +170,8 @@ int main(){
     // variational parameters
     const double a = 0.37;
     const double sqrtb = 1.18;
-    const double b = sqrtb * sqrtb;
-    const double p1 = - sqrtb * a;
+    const double b = sqrtb*sqrtb;
+    const double p1 = -sqrtb*a;
     const double p2 = sqrtb;
 
 
@@ -219,32 +220,32 @@ int main(){
     double energy[4];
     double d_energy[4];
     vmc.computeEnergy(Nmc, energy, d_energy);
-    // cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
-    // cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
-    // cout << "       Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
-    // cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
+    cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
+    cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
+    cout << "       Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
+    cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
 
 
     VMC vmc_check(phi, ham);
-    vmc.getMCI().setSeed(1337);
+    vmc_check.getMCI().setSeed(1337);
 
     double energy_check[4];
     double d_energy_check[4];
     vmc_check.computeEnergy(Nmc, energy_check, d_energy_check);
-    // cout << "       Total Energy        = " << energy_check[0] << " +- " << d_energy_check[0] << endl;
-    // cout << "       Potential Energy    = " << energy_check[1] << " +- " << d_energy_check[1] << endl;
-    // cout << "       Kinetic (PB) Energy = " << energy_check[2] << " +- " << d_energy_check[2] << endl;
-    // cout << "       Kinetic (JF) Energy = " << energy_check[3] << " +- " << d_energy_check[3] << endl << endl;
+    cout << "       Total Energy        = " << energy_check[0] << " +- " << d_energy_check[0] << endl;
+    cout << "       Potential Energy    = " << energy_check[1] << " +- " << d_energy_check[1] << endl;
+    cout << "       Kinetic (PB) Energy = " << energy_check[2] << " +- " << d_energy_check[2] << endl;
+    cout << "       Kinetic (JF) Energy = " << energy_check[3] << " +- " << d_energy_check[3] << endl << endl;
 
-    for (int i=0; i<4; ++i){
-        assert( abs(energy[i]-energy_check[i]) < 3.*sqrt(d_energy[i]*d_energy[i]+d_energy_check[i]*d_energy_check[i]) );
+    for (int i = 0; i < 4; ++i) {
+        assert(abs(energy[i] - energy_check[i]) < 3.*sqrt(d_energy[i]*d_energy[i] + d_energy_check[i]*d_energy_check[i]));
     }
 
 
     // --- Check the variational derivatives
-    const double dx=0.2;
+    const double dx = 0.2;
     double x = -1.;
-    for (int i=0; i<10; ++i){
+    for (int i = 0; i < 10; ++i) {
         x = x + dx;
 
         phi.computeAllDerivatives(&x);
@@ -259,10 +260,10 @@ int main(){
 
 
         // cout << dda_phi << " == " << - ddp1_psi * sqrtb << " ? " << endl;
-        assert( abs(dda_phi - ( - ddp1_psi * sqrtb )) < TINY );
+        assert(abs(dda_phi - (-ddp1_psi*sqrtb)) < TINY);
 
         // cout << ddb_phi << " == " << ddp2_psi / (2. * sqrtb) - ddp1_psi * a / (2. * sqrtb) << " ? " << endl;
-        assert( abs(ddb_phi - ( ddp2_psi / (2. * sqrtb) - ddp1_psi * a / (2. * sqrtb) ) ) < TINY );
+        assert(abs(ddb_phi - (ddp2_psi/(2.*sqrtb) - ddp1_psi*a/(2.*sqrtb))) < TINY);
     }
 
     MPIVMC::Finalize();

@@ -1,5 +1,5 @@
 #!/bin/sh
 cp plot.py ../../build/examples/
 cd ../../build/examples
-./ex3.exe
+./ex_adamopt.exe
 python plot.py

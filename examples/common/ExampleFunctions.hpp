@@ -2,9 +2,14 @@
 #define NNVMC_EXAMPLEFUNCTIONS_HPP
 
 #include <cmath>
+#include <algorithm>
 
 #include "vmc/Hamiltonian.hpp"
 #include "vmc/WaveFunction.hpp"
+
+#include "nfm/NoisyFunction.hpp"
+
+#include "sannifa/Sannifa.hpp"
 
 /*
   Hamiltonian describing a 1-particle harmonic oscillator:
@@ -158,5 +163,52 @@ public:
         return exp(0.5*protovalues[0]);
     }
 };
+
+
+// Simple Cost Function for NN fitting
+
+class NNFitCost: public nfm::NoisyFunctionWithGradient
+{
+protected:
+    Sannifa * const _ann;
+    const int _ndata;
+    const double * const _xdata;
+    const double * const _ydata;
+
+public:
+    explicit NNFitCost(Sannifa * ann, int ndata, const double xdata[] /*ndata*ninput*/, const double ydata[] /*ndata*/):
+            nfm::NoisyFunctionWithGradient(ann->getNVariationalParameters(), false/*no grad errors*/), _ann(ann), _ndata(ndata), _xdata(xdata), _ydata(ydata) {}
+
+    nfm::NoisyValue f(const std::vector<double> &in) override
+    {
+        _ann->setVariationalParameters(in.data());
+        nfm::NoisyValue y{0., 0.};
+        std::vector<double> resis(_ndata);
+        for (int i = 0; i < _ndata; ++i) {
+            _ann->evaluate(_xdata + i, false);
+            resis[i] = pow(_ann->getOutput(0) - _ydata[i], 2);
+            y.val += resis[i];
+        }
+        for (int i = 0; i < _ndata; ++i) {
+            y.err += pow(resis[i] - y.val/_ndata, 2);
+        }
+        y.err = sqrt(y.err/(_ndata - 1.));
+        return y;
+    }
+
+    void grad(const std::vector<double> &in, nfm::NoisyGradient &grad) override
+    {
+        _ann->setVariationalParameters(in.data());
+        std::fill(grad.val.begin(), grad.val.end(), 0.);
+        for (int i = 0; i < _ndata; ++i) {
+            _ann->evaluate(_xdata + i, true);
+            const double diff2 = 2.*(_ann->getOutput(0) - _ydata[i]);
+            for (int j = 0; j < _ann->getNVariationalParameters(); ++j) {
+                grad.val[j] -= diff2*_ann->getVariationalFirstDerivative(0, j);
+            }
+        }
+    }
+};
+
 
 #endif
