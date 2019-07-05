@@ -189,10 +189,11 @@ public:
             resis[i] = pow(_ann->getOutput(0) - _ydata[i], 2);
             y.val += resis[i];
         }
+        y.val /= _ndata;
         for (int i = 0; i < _ndata; ++i) {
             y.err += pow(resis[i] - y.val/_ndata, 2);
         }
-        y.err = sqrt(y.err/(_ndata - 1.));
+        y.err = sqrt(y.err/(_ndata - 1.)) / _ndata;
         return y;
     }
 
@@ -202,7 +203,7 @@ public:
         std::fill(grad.val.begin(), grad.val.end(), 0.);
         for (int i = 0; i < _ndata; ++i) {
             _ann->evaluate(_xdata + i, true);
-            const double diff2 = 2.*(_ann->getOutput(0) - _ydata[i]);
+            const double diff2 = 2.*(_ann->getOutput(0) - _ydata[i]) / _ndata;
             for (int j = 0; j < _ann->getNVariationalParameters(); ++j) {
                 grad.val[j] -= diff2*_ann->getVariationalFirstDerivative(0, j);
             }
