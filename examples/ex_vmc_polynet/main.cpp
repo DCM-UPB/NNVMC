@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <stdexcept>
+#include <mpi.h>
 
 #include "../common/ExampleFunctions.hpp"
 
@@ -19,10 +20,10 @@ int main()
 {
     using namespace std;
 
-    MPIVMC::Init(); // to avoid error with MPI-compiled VMC library
+    const int myrank = MPIVMC::Init(); // to allow use with MPI-compiled VMC library
 
     // construct NNWF
-    const int HIDDENLAYERSIZE = 13; // including offset
+    const int HIDDENLAYERSIZE = 13; // including offset "unit"
     const int NHIDDENLAYERS = 1;
     FeedForwardNeuralNetwork ffnn(2, HIDDENLAYERSIZE, 2);
     for (int i = 0; i < NHIDDENLAYERS - 1; ++i) {
@@ -40,6 +41,15 @@ int main()
     ffnn.connectFFNN();
     ffnn.assignVariationalParameters();
 
+    // make sure that all threads have identical NN weights
+    const int nvpar = ffnn.getNVariationalParameters();
+    double vp[nvpar];
+    if (myrank == 0) {
+        ffnn.getVariationalParameter(vp);
+    }
+    MPI_Bcast(vp, nvpar, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    ffnn.setVariationalParameter(vp);
+
     QPolyWrapper nn_wrapper(ffnn);
     nn_wrapper.enableFirstDerivative();
     nn_wrapper.enableSecondDerivative();
@@ -55,7 +65,7 @@ int main()
     HarmonicOscillator1D1P ham(w1);
 
 
-    cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl;
+    if (myrank == 0) { cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl; }
 
     using namespace vmc;
     const long E_NMC = 100000l; // MC samplings to use for computing the energy (init/final)
@@ -63,7 +73,7 @@ int main()
     double energy[4]; // energy
     double d_energy[4]; // energy error bar
 
-    cout << "-> ham1:    w = " << w1 << endl << endl;
+    if (myrank == 0) { cout << "-> ham1:    w = " << w1 << endl << endl; }
     VMC vmc(psi, ham); // VMC object used for energy/optimization
 
 
@@ -74,15 +84,17 @@ int main()
     auto &used_ffnn = const_cast<FeedForwardNeuralNetwork &>(dynamic_cast<NNWFType &>(vmc.getWF()).getANN().getBareFFNN());
 
     // Store in a .txt file the values of the initial wf, so that it is possible to plot it
-    cout << "Writing the plot file of the initial wave function in plot_init_wf.txt" << endl << endl;
+    if (myrank == 0) { cout << "Writing the plot file of the initial wave function in plot_init_wf.txt" << endl << endl; }
     double base_input[used_ffnn.getNInput()]; // no need to set it, since it is 1-dim
     const int input_i = 0;
     const int output_i = 0;
     const double min = -5.;
     const double max = 5.;
     const int npoints = 500;
-    writePlotFile(&used_ffnn, base_input, input_i, output_i, min, max, npoints, "getOutput", "plot_init_wf.txt");
-    printFFNNStructure(&used_ffnn);
+    if (myrank == 0) {
+        writePlotFile(&used_ffnn, base_input, input_i, output_i, min, max, npoints, "getOutput", "plot_init_wf.txt");
+        printFFNNStructure(&used_ffnn);
+    }
 
     // set an integration range, because the NN might be completely delocalized
     vmc.getMCI().setIRange(-7.5, 7.5);
@@ -90,17 +102,18 @@ int main()
     // set fixed number of decorrelation steps
     vmc.getMCI().setNdecorrelationSteps(1000);
 
-
-    cout << "   Starting energy:" << endl;
+    // compute the initial energy
     vmc.computeEnergy(E_NMC, energy, d_energy);
-    cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
-    cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
-    cout << "       Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
-    cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
+    if (myrank == 0) {
+        cout << "   Starting energy:" << endl;
+        cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
+        cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
+        cout << "       Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
+        cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl;
+    }
 
-
-    // set logging
-    nfm::LogManager::setLoggingOn();
+    // enable logging on thread 0
+    if (myrank == 0) { nfm::LogManager::setLoggingOn(); }
 
     // -- Setup Adam optimization
     nfm::Adam adam(vmc.getNVP(), true /* use averaging to obtain final result */);
@@ -110,23 +123,26 @@ int main()
     adam.setMaxNConstValues(20); // stop after 20 constant values (within error)
     adam.setMaxNIterations(200); // limit to 200 iterations
 
-
-    cout << "   Optimization . . ." << endl;
+    // optimize the NNWF
+    if (myrank == 0) { cout << "   Optimization . . ." << endl; }
     minimizeEnergy<EnergyGradientTargetFunction>(vmc, adam, E_NMC, G_NMC);
-    cout << "   . . . Done!" << endl << endl;
+    if (myrank == 0) { cout << "   . . . Done!" << endl << endl; }
 
-    cout << "   Optimized energy:" << endl;
+    // compute the final energy
     vmc.computeEnergy(E_NMC, energy, d_energy);
-    cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
-    cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
-    cout << "       Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
-    cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl << endl;
-
+    if (myrank == 0) {
+        cout << "   Optimized energy:" << endl;
+        cout << "       Total Energy        = " << energy[0] << " +- " << d_energy[0] << endl;
+        cout << "       Potential Energy    = " << energy[1] << " +- " << d_energy[1] << endl;
+        cout << "       Kinetic (PB) Energy = " << energy[2] << " +- " << d_energy[2] << endl;
+        cout << "       Kinetic (JF) Energy = " << energy[3] << " +- " << d_energy[3] << endl << endl << endl;
+    }
 
     // store in a .txt file the values of the optimised wf, so that it is possible to plot it
-    cout << "Writing the plot file of the optimised wave function in plot_opt_wf.txt" << endl << endl;
-    writePlotFile(&used_ffnn, base_input, input_i, output_i, min, max, npoints, "getOutput", "plot_opt_wf.txt");
-
+    if (myrank == 0) {
+        cout << "Writing the plot file of the optimised wave function in plot_opt_wf.txt" << endl << endl;
+        writePlotFile(&used_ffnn, base_input, input_i, output_i, min, max, npoints, "getOutput", "plot_opt_wf.txt");
+    }
 
     MPIVMC::Finalize();
 

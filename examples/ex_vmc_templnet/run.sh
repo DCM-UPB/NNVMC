@@ -1,3 +1,3 @@
 #!/bin/sh
 cd ../../build/examples
-./ex_templnet.exe
+./ex_vmc_templnet.exe

@@ -1,3 +1,3 @@
 #!/bin/sh
 cd ../../build/examples
-./ex_templnet.exe
+./ex_fit_basic.exe
