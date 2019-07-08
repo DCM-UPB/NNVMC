@@ -30,7 +30,7 @@ public:
             vmc::Hamiltonian(1 /*num space dimensions*/, 1 /*num particles*/) { _w = w; }
 
     // potential energy
-    double localPotentialEnergy(const double * r) final
+    double localPotentialEnergy(const double r[]) final
     {
         return (0.5*_w*_w*(*r)*(*r));
     }
@@ -60,19 +60,19 @@ public:
         _b = b;
     }
 
-    void setVP(const double * in) final
+    void setVP(const double in[]) final
     {
         _a = in[0];
         _b = in[1];
     }
 
-    void getVP(double * out) const final
+    void getVP(double out[]) const final
     {
         out[0] = _a;
         out[1] = _b;
     }
 
-    void protoFunction(const double * x, double * out) final
+    void protoFunction(const double x[], double out[]) final
     {
         /*
           Compute the sampling function proto value, used in acceptanceFunction()
@@ -80,7 +80,7 @@ public:
         *out = -2.*(_b*(x[0] - _a)*(x[0] - _a));
     }
 
-    double acceptanceFunction(const double * protoold, const double * protonew) const final
+    double acceptanceFunction(const double protoold[], const double protonew[]) const final
     {
         /*
           Compute the acceptance probability
@@ -88,7 +88,7 @@ public:
         return exp(protonew[0] - protoold[0]);
     }
 
-    void computeAllDerivatives(const double * x) final
+    void computeAllDerivatives(const double x[]) final
     {
         _setD1DivByWF(0, -2.*_b*(x[0] - _a));
         _setD2DivByWF(0, -2.*_b + (-2.*_b*(x[0] - _a))*(-2.*_b*(x[0] - _a)));
@@ -98,7 +98,7 @@ public:
         }
     }
 
-    double computeWFValue(const double * protovalues) const final
+    double computeWFValue(const double protovalues[]) const final
     {
         return exp(0.5*protovalues[0]);
     }
@@ -127,29 +127,27 @@ public:
         _b = b;
     }
 
-    void setVP(const double * in) final
+    void setVP(const double in[]) final
     {
         _b = *in;
-        //if (_b<0.01) _b=0.01;
-        using namespace std;
-        //cout << "change b! " << _b << endl;
     }
-    void getVP(double * out) const final
+
+    void getVP(double out[]) const final
     {
         *out = _b;
     }
 
-    void protoFunction(const double * in, double * out) final
+    void protoFunction(const double in[], double out[]) final
     {
         *out = -2.*_b*(*in)*(*in);
     }
 
-    double acceptanceFunction(const double * protoold, const double * protonew) const final
+    double acceptanceFunction(const double protoold[], const double protonew[]) const final
     {
         return exp(protonew[0] - protoold[0]);
     }
 
-    void computeAllDerivatives(const double * in) final
+    void computeAllDerivatives(const double in[]) final
     {
         _setD1DivByWF(0, -2.*_b*(*in));
         _setD2DivByWF(0, -2.*_b + 4.*_b*_b*(*in)*(*in));
@@ -158,7 +156,7 @@ public:
         }
     }
 
-    double computeWFValue(const double * protovalues) const final
+    double computeWFValue(const double protovalues[]) const final
     {
         return exp(0.5*protovalues[0]);
     }

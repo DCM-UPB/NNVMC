@@ -1,3 +1,3 @@
 #!/bin/sh
 cd ../../build/examples
-./ex1.exe
+./ex_h2mol.exe
