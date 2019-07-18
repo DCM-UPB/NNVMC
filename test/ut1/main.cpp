@@ -10,8 +10,8 @@
 #include "nnvmc/ANNWaveFunction.hpp"
 
 #include <iostream>
-#include <assert.h>
-#include <math.h>
+#include <cassert>
+#include <cmath>
 #include <stdexcept>
 
 

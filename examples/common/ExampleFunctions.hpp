@@ -181,7 +181,7 @@ public:
     {
         _ann->setVariationalParameters(in.data());
         nfm::NoisyValue y{0., 0.};
-        std::vector<double> resis(_ndata);
+        std::vector<double> resis(static_cast<size_t>(_ndata));
         for (int i = 0; i < _ndata; ++i) {
             _ann->evaluate(_xdata + i, false);
             resis[i] = pow(_ann->getOutput(0) - _ydata[i], 2);

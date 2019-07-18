@@ -54,7 +54,7 @@ find_library(QNETS_STATIC_LIBRARY_DIR qnets_static HINTS "${QNETS_ROOT_DIR}/buil
 find_package_handle_standard_args(libqnets DEFAULT_MSG QNETS_LIBRARY_DIR QNETS_INCLUDE_DIR)
 find_package_handle_standard_args(libqnets_static DEFAULT_MSG QNETS_STATIC_LIBRARY_DIR QNETS_INCLUDE_DIR)
 
-find_path(SANNIFA_INCLUDE_DIR sannifa/ANNFunctionInterface.hpp HINTS "${SANNIFA_ROOT_DIR}/include/")
+find_path(SANNIFA_INCLUDE_DIR sannifa/Sannifa.hpp HINTS "${SANNIFA_ROOT_DIR}/include/")
 find_library(SANNIFA_LIBRARY_DIR sannifa HINTS "${SANNIFA_ROOT_DIR}/build/src/")
 #find_library(SANNIFA_STATIC_LIBRARY_DIR sannifa_static HINTS "${SANNIFA_ROOT_DIR}/build/src/")
 find_package_handle_standard_args(libsannifa DEFAULT_MSG SANNIFA_LIBRARY_DIR SANNIFA_INCLUDE_DIR)
