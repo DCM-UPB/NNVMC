@@ -85,7 +85,7 @@ public:
 /*
   HydrogenMolecule 1P sigma orbitals
 */
-class HydrogenMolecule1PSigmaOrbital: public vmc::WaveFunction
+class MolecularSigmaOrbital: public vmc::WaveFunction
 {
 protected:
     const double _drp;
@@ -93,11 +93,11 @@ protected:
 
     mci::SamplingFunctionInterface * _clone() const final
     {
-        return new HydrogenMolecule1PSigmaOrbital(_drp, _pindex, this->hasVD1());
+        return new MolecularSigmaOrbital(_drp, _pindex, this->hasVD1());
     }
 
 public:
-    HydrogenMolecule1PSigmaOrbital(double drp, int part_index /* for which of the particles is the orbital */, bool flag_vd1 = true):
+    MolecularSigmaOrbital(double drp, int part_index /* for which of the particles is the orbital */, bool flag_vd1 = true):
             WaveFunction(3 /*num space dimensions*/, 2 /*num particles*/, 1 /*num wf components*/, 0 /*num variational parameters*/, flag_vd1 /*VD1*/, false /*D1VD1*/, false /*D2VD1*/),
             _drp(drp), _pindex(part_index) {}
 
@@ -112,15 +112,10 @@ public:
 
     double acceptanceFunction(const double protoold[], const double protonew[]) const final
     {
-        const double prtosq = protoold[0]*protoold[0];
-        const double prtnsq = protonew[0]*protonew[0];
-        if ((prtosq == 0.) && (prtnsq != 0.)) {
-            return 1.;
+        if (protoold[0] == 0.) {
+            return (protonew[0] != 0.) ? 1. : 0.;
         }
-        else if ((prtosq == 0.) && (prtnsq == 0.)) {
-            return 0.;
-        }
-            return prtnsq/prtosq;
+        return (protonew[0]*protonew[0])/(protoold[0]*protoold[0]);
     }
 
     void computeAllDerivatives(const double in[]) final
@@ -214,8 +209,8 @@ int main()
     // Declare the trial wave function
     // setup the individual components
     ANNWaveFunction<QTemplWrapper<NetType>> psi_nn(3, 2, ann);
-    HydrogenMolecule1PSigmaOrbital psi_orb1(drp, 0);
-    HydrogenMolecule1PSigmaOrbital psi_orb2(drp, 1);
+    MolecularSigmaOrbital psi_orb1(drp, 0);
+    MolecularSigmaOrbital psi_orb2(drp, 1);
     // and put them together via MultiComponentWaveFunction
     vmc::MultiComponentWaveFunction psi(3, 2, true);
     psi.addWaveFunction(&psi_nn);

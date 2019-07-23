@@ -64,14 +64,10 @@ public:
     // MCI acceptance starting from the new and old sampling functions
     double acceptanceFunction(const double protoold[], const double protonew[]) const final
     {
-        if ((protoold[0] == 0.) && (protonew[0] != 0.)) {
-            return 1.;
+        if (protoold[0] == 0.) {
+            return (protonew[0] != 0.) ? 1. : 0.;
         }
-        else if ((protoold[0] == 0.) && (protonew[0] == 0.)) {
-            return 0.;
-        }
-
-        return protonew[0]*protonew[0]/(protoold[0]*protoold[0]);
+        return (protonew[0]*protonew[0])/(protoold[0]*protoold[0]);
     }
 
     // --- computation of the derivatives / wf value
