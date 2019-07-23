@@ -21,8 +21,11 @@ NFM_ROOT="/...../NoisyFunMin"
 # VariationalMonteCarlo Library
 VMC_ROOT="/...../VMCPlusPlus"
 
-# FeedForwardNeuralNetwork Library
-FFNN_ROOT="/...../FeedForwardNeuralNetwork"
+# QNets Library
+QNETS_ROOT="/...../QNets"
+
+# sannifa Library
+SANNIFA_ROOT="/...../sannifa"
 
 # GNU Scientific Library
 GSL_ROOT="" # provide a path if not in system location

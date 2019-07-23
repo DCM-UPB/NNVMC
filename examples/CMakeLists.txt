@@ -1,8 +1,6 @@
 link_libraries(nnvmc)
 
-add_executable(ex1.exe ex1/main.cpp)
-add_executable(ex2.exe ex2/main.cpp)
-add_executable(ex3.exe ex3/main.cpp)
-add_executable(ex4.exe ex4/main.cpp)
-add_executable(ex5.exe ex5/main.cpp)
-add_executable(ex6.exe ex6/main.cpp)
+add_executable(ex_vmc_polynet.exe ex_vmc_polynet/main.cpp)
+add_executable(ex_vmc_templnet.exe ex_vmc_templnet/main.cpp)
+add_executable(ex_fit_basic.exe ex_fit_basic/main.cpp)
+add_executable(ex_h2mol.exe ex_h2mol/main.cpp)

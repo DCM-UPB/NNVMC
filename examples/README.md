@@ -10,31 +10,21 @@ are extremely bad wave functions initially. Consequently, successful optimizatio
 Keep that in mind and restart the examples a few times if necessary.
 
 
-## Example 1
+## NNWF-VMC using QNets/Poly
 
-`ex1/`: integration using a FeedForwardNeuralNetwork, making the integrals with and without MC
-
-
-## Example 2
-
-`ex2/`: another NN-MC integration example with beta derivatives calculation
+`ex_vmc_polynet/`: Use a simple NNWF based on QNets/Poly to find harmonic oscillator ground state via VMC.
 
 
-## Example 3
+## NNWF-VMC using QNets/Templ
 
-`ex3/`: Optimize a FFNN trial wave function for 1-particle 1-dimension harmonic oscillator using the Conjugate Gradient method, setting the potential parameter w=1 and w=2.
-
-
-## Example 4
-
-`ex4/`: Compute the variational energy of Gaussian vs. NN fitted to Gaussian, for 1D1P harmonic oscillator
+`ex_vmc_templnet/`: Like the previous example, but using QNets/Templ.
 
 
-## Example 5
+## NNWF pre-fitting
 
-`ex5/`: solve 1 dimension 1 particle harmonic oscillator using a Neural Network Wave Function and optimizing via the Nelder-Mead Simplex algorithm.
+`ex_fit_basic/`: Pre-Fit the NNWF to a known solution/approximation before using it for VMC.
 
 
-## Example 6
+## Hydrogen Molecule
 
-`ex6/`: solve 1 dimension 1 particle harmonic oscillator using a Neural Network Wave Function and optimizing via the Adam algorithm.
+`ex_h2mol/`: Find the ground state energy of the hydrogen molecule with a simple bosonic product NNWF.
