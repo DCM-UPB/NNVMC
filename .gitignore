@@ -101,3 +101,5 @@ doc/*.ind
 doc/auto
 
 doc/doxygen/*/*
+
+plot_*.txt

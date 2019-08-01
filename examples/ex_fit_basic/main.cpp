@@ -69,7 +69,7 @@ int main()
         cout << endl << " - - - NNWF FITTING - - - " << endl << endl;
 
         // generate some gaussian data for fit
-        const int ndata = 1000;
+        const int ndata = 2000;
         rd = normal_distribution<double>(0, 2.); // sigma 2.
         double xdata[ndata], ydata[ndata];
 
@@ -83,21 +83,21 @@ int main()
         NNFitCost fit_cost(&ann, ndata, xdata, ydata);
 
         // Setup Adam
-        nfm::Adam adam(ann.getNVariationalParameters(), true /*enable averaging*/);
+        nfm::Adam adam(ann.getNVariationalParameters(), false /*disable averaging here*/);
         adam.setAlpha(0.01);
-        adam.setBeta1(0.75);
-        adam.setBeta2(0.95);
+        adam.setBeta1(0.5);
+        adam.setBeta2(0.9);
         adam.setMaxNConstValues(20);
         adam.setMaxNIterations(500);
 
-        const double ftol_adam = 0.00001;
+        const double ftol_fit = 0.00002;
         nfm::NoisyIOPair res(ann.getNVariationalParameters()); // variable to hold optimization results
         std::copy(vp, vp + ann.getNVariationalParameters(), res.x.begin()); // copy initial pars to res
         res.f = {-1., 0.}; // set initial residual to negative value
 
-        while (res.f < 0. || res.f > ftol_adam) { // repeat fitting until residual below tolerance
+        while (res.f < 0. || res.f > ftol_fit) { // repeat fitting until residual below tolerance
             res = adam.findMin(fit_cost, res.x.data());
-            cout << "Fit residual (Adam): R = " << res.f.val << " +- " << res.f.err << endl;
+            cout << "Fit residual: R = " << res.f.val << " +- " << res.f.err << endl;
         }
 
         for (double x = -5.; x <= 5.; x += 0.5) {

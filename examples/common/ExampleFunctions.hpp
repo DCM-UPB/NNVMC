@@ -164,7 +164,9 @@ public:
 
 
 // Simple Cost Function for NN fitting
-
+//
+// Basic all-data mean-squares cost without regularization.
+// Suboptimal efficiency, because no combined fgrad is implemented.
 class NNFitCost: public nfm::NoisyFunctionWithGradient
 {
 protected:
@@ -172,10 +174,11 @@ protected:
     const int _ndata;
     const double * const _xdata;
     const double * const _ydata;
+    const bool _useError;
 
 public:
-    explicit NNFitCost(Sannifa * ann, int ndata, const double xdata[] /*ndata*ninput*/, const double ydata[] /*ndata*/):
-            nfm::NoisyFunctionWithGradient(ann->getNVariationalParameters(), false/*no grad errors*/), _ann(ann), _ndata(ndata), _xdata(xdata), _ydata(ydata) {}
+    explicit NNFitCost(Sannifa * ann, int ndata, const double xdata[] /*ndata*ninput*/, const double ydata[] /*ndata*/, bool useError = true):
+            nfm::NoisyFunctionWithGradient(ann->getNVariationalParameters(), false/*no grad errors*/), _ann(ann), _ndata(ndata), _xdata(xdata), _ydata(ydata), _useError(useError) {}
 
     nfm::NoisyValue f(const std::vector<double> &in) override
     {
@@ -188,10 +191,12 @@ public:
             y.val += resis[i];
         }
         y.val /= _ndata;
-        for (int i = 0; i < _ndata; ++i) {
-            y.err += pow(resis[i] - y.val/_ndata, 2);
+        if (_useError) { // error of the mean estimation
+            for (int i = 0; i < _ndata; ++i) {
+                y.err += pow(resis[i] - y.val, 2);
+            }
+            y.err = sqrt(y.err/((_ndata - 1.)*_ndata));
         }
-        y.err = sqrt(y.err/(_ndata - 1.)) / _ndata;
         return y;
     }
 

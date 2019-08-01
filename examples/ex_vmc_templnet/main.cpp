@@ -114,7 +114,7 @@ int main()
 
     // optimize the NNWF
     if (myrank == 0) { cout << "   Optimization . . ." << endl; }
-    minimizeEnergy<EnergyGradientTargetFunction>(vmc, adam, E_NMC, G_NMC);
+    minimizeEnergy<EnergyGradientTargetFunction>(vmc, adam, E_NMC, G_NMC, false /*no gradient error*/, 0.001 /*regularization*/);
     if (myrank == 0) { cout << "   . . . Done!" << endl << endl; }
 
     // compute final energy
