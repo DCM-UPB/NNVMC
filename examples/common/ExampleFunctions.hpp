@@ -215,4 +215,144 @@ public:
 };
 
 
+// Hydrogen Molecule
+
+// helper struct and function to determine the two e-p distances per electron
+struct EPDistances
+{
+    double v[2];
+};
+
+// compute distances, given that protons are aligned along x-axis
+EPDistances calcEPDistances(const double r[2], double drp)
+{
+    const double hdrp = 0.5*drp;
+    const double hdrp2 = hdrp*hdrp;
+    EPDistances dists{};
+
+    const double yzdist = r[1]*r[1] + r[2]*r[2]; // y/z directional parts of e-p distance
+    const double xdist_1 = r[0]*r[0] + hdrp2;
+    const double xdist_2 = 2.*r[0]*hdrp;
+
+    dists.v[0] = sqrt(xdist_1 + xdist_2 + yzdist);
+    dists.v[1] = sqrt(xdist_1 - xdist_2 + yzdist);
+
+    return dists;
+}
+
+/*
+  Electronic Hamiltonian describing a single H2 molecule aligned to x-axis
+*/
+class HydrogenMoleculeHamiltonian: public vmc::Hamiltonian
+{
+protected:
+    const double _drp; // p-p distance
+    const double e0; // protonic coulomb energy
+
+    mci::ObservableFunctionInterface * _clone() const final
+    {
+        return new HydrogenMoleculeHamiltonian(_drp);
+    }
+public:
+    explicit HydrogenMoleculeHamiltonian(double drp):
+            vmc::Hamiltonian(3 /*num space dimensions*/, 2 /*num particles*/),
+            _drp(drp), e0(1./drp) {}
+
+    // potential energy
+    double localPotentialEnergy(const double r[]) final
+    {
+        double pot = 0.;
+        // add e-p coulomb terms
+        for (int i = 0; i < 2; ++i) {
+            const EPDistances dists = calcEPDistances(r + i*3, _drp);
+            pot -= 1./dists.v[0];
+            pot -= 1./dists.v[1];
+        }
+        // add e-e coulomb terms
+        double dist = 0.;
+        for (int k = 0; k < 3; ++k) {
+            dist += (r[k] - r[k + 3])*(r[k] - r[k + 3]);
+        }
+        pot += 1./sqrt(dist);
+
+        return pot + e0; // add p-p coulomb term and return
+    }
+};
+
+/*
+  HydrogenMolecule 1P sigma orbitals
+*/
+class MolecularSigmaOrbital: public vmc::WaveFunction
+{
+protected:
+    const double _drp;
+    const int _pindex;
+
+    mci::SamplingFunctionInterface * _clone() const final
+    {
+        return new MolecularSigmaOrbital(_drp, _pindex, this->hasVD1());
+    }
+
+public:
+    MolecularSigmaOrbital(double drp, int part_index /* for which of the particles is the orbital */, bool flag_vd1 = true):
+            WaveFunction(3 /*num space dimensions*/, 2 /*num particles*/, 1 /*num wf components*/, 0 /*num variational parameters*/, flag_vd1 /*VD1*/, false /*D1VD1*/, false /*D2VD1*/),
+            _drp(drp), _pindex(part_index) {}
+
+    void setVP(const double in[]) final {}
+    void getVP(double out[]) const final {}
+
+    void protoFunction(const double in[], double out[]) final
+    {
+        EPDistances dists = calcEPDistances(in + _pindex*3, _drp);
+        out[0] = 0.5*(exp(-dists.v[0]) + exp(-dists.v[1]));
+    }
+
+    double acceptanceFunction(const double protoold[], const double protonew[]) const final
+    {
+        if (protoold[0] == 0.) {
+            return (protonew[0] != 0.) ? 1. : 0.;
+        }
+        return (protonew[0]*protonew[0])/(protoold[0]*protoold[0]);
+    }
+
+    void computeAllDerivatives(const double in[]) final
+    {
+        double wfval[2];
+        const int pidx = _pindex*3; // particle index offset
+        for (int k = 0; k < 6; ++k) { // set all deriv elements to 0
+            _setD1DivByWF(k, 0.);
+            _setD2DivByWF(k, 0.);
+        }
+        EPDistances dists = calcEPDistances(in + pidx, _drp);
+        for (int j = 0; j < 2; ++j) {
+            const double dist = dists.v[j];
+            const double dist2 = dist*dist;
+            const double dist3 = dist2*dist;
+            const double sig_hdrp = ( j == 0) ? -0.5*_drp : 0.5*_drp;
+            wfval[j] = exp(-dist);
+
+            // compute x elements of derivs
+            _setD1DivByWF(pidx, getD1DivByWF(pidx) - (in[pidx] - sig_hdrp)/dist*wfval[j]);
+            _setD2DivByWF(pidx, getD2DivByWF(pidx) + ((in[pidx] - sig_hdrp)*(in[pidx] - sig_hdrp)*(1./dist2 + 1./dist3) - 1./dist)*wfval[j]);
+
+            // compute other directions
+            for (int k = 1; k < 3; ++k) {
+                _setD1DivByWF(pidx + k, getD1DivByWF(pidx + k) - (in[pidx + k])/dist*wfval[j]);
+                _setD2DivByWF(pidx + k, getD2DivByWF(pidx + k) + ((in[pidx + k]*in[pidx + k])*(1./dist2 + 1./dist3) - 1./dist)*wfval[j]);
+            }
+        }
+        // add final terms
+        const double wfval_full = wfval[0] + wfval[1];
+        for (int k = 0; k < 3; ++k) {
+            _setD1DivByWF(pidx + k, getD1DivByWF(pidx + k)/wfval_full);
+            _setD2DivByWF(pidx + k, getD2DivByWF(pidx + k)/wfval_full);
+        }
+    }
+
+    double computeWFValue(const double protovalues[]) const final
+    {
+        return protovalues[0];
+    }
+};
+
 #endif

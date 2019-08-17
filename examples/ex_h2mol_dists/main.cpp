@@ -10,6 +10,7 @@
 #include "nfm/Adam.hpp"
 #include "nfm/LogManager.hpp"
 #include "nnvmc/ANNWaveFunction.hpp"
+#include "nnvmc/DistanceFeedWrapper.hpp"
 #include "qnets/templ/TemplNet.hpp"
 #include "qnets/actf/TanSig.hpp"
 #include "qnets/actf/Exp.hpp"
@@ -18,6 +19,61 @@
 
 #include "../common/ExampleFunctions.hpp"
 
+#include <cassert>
+
+void checkDerivatives(vmc::WaveFunction &wf, const double re0[], double dx, double REL_TINY, double MIN_DIFF, bool verbose = false)
+{
+    const int ndim = wf.getTotalNDim();
+    double protov[wf.getNProto()]; // holds temp values to compute wf value
+    double vp0[wf.getNVP()];
+    wf.getVP(vp0); // store initial vp
+
+    for (int i = 0; i < ndim; ++i) {
+        double re1[ndim];
+        std::copy(re0, re0 + ndim, re1);
+        wf.protoFunction(re0, protov);
+        const double psi0 = wf.computeWFValue(protov);
+        re1[i] = re0[i] + dx;
+        wf.protoFunction(re1, protov);
+        const double psir = wf.computeWFValue(protov);
+        re1[i] = re0[i] - dx;
+        wf.protoFunction(re1, protov);
+        const double psil = wf.computeWFValue(protov);
+        wf.computeAllDerivatives(re0);
+        const double d1d_ana = wf.getD1DivByWF(i)*psi0;
+        const double d1d_num = 0.5*(psir - psil)/dx;
+        const double diffd1 = fabs(d1d_ana - d1d_num);
+        const double rdiffd1 = d1d_num != 0. ? fabs(diffd1/d1d_num) : 0.;
+        if (verbose) { std::cout << "Check dimension " << i << ":" << std::endl; }
+        if (verbose) { std::cout << "d1: ana " << d1d_ana << " num " << d1d_num << " diff " << diffd1 << " reldiff " << rdiffd1 << std::endl; }
+        //assert(rdiffd1 < REL_TINY || diffd1 < MIN_DIFF);
+        const double d2d_ana = wf.getD2DivByWF(i)*psi0;
+        const double d2d_num = (psir + psil - 2*psi0)/(dx*dx);
+        const double diffd2 = fabs(d2d_ana - d2d_num);
+        const double rdiffd2 = d2d_num != 0. ? fabs(diffd2/d2d_num) : 0.;
+        if (verbose) { std::cout << "d2: ana " << d2d_ana << " num " << d2d_num << " diff " << diffd2 << " reldiff " << rdiffd2 << std::endl; }
+        //assert(rdiffd2 < REL_TINY || diffd2 < MIN_DIFF);
+    }
+    for (int i = 0; i < wf.getNVP(); ++i) {
+        wf.protoFunction(re0, protov);
+        const double psi0 = wf.computeWFValue(protov);
+        wf.computeAllDerivatives(re0);
+        const double vd1d_ana = wf.getVD1DivByWF(i)*psi0;
+        double vp1[wf.getNVP()];
+        std::copy(vp0, vp0 + wf.getNVP(), vp1);
+        vp1[i] += dx;
+        wf.setVP(vp1);
+        wf.protoFunction(re0, protov);
+        const double psir = wf.computeWFValue(protov);
+        const double vd1d_num = (psir - psi0)/dx;
+        const double diffvd1 = fabs(vd1d_ana - vd1d_num);
+        const double rdiffvd1 = vd1d_num != 0. ? fabs(diffvd1/vd1d_num) : 0.;
+        if (verbose) { std::cout << "Check vp " << i << "( " << vp0[i] << " ):" << std::endl; }
+        if (verbose) { std::cout << "vd1: ana " << vd1d_ana << " num " << vd1d_num << " diff " << diffvd1 << " reldiff " << rdiffvd1 << std::endl; }
+        assert(rdiffvd1 < REL_TINY || diffvd1 < MIN_DIFF);
+        wf.setVP(vp0); // restore original vp
+    }
+}
 
 int main()
 {
@@ -37,13 +93,31 @@ int main()
     using L1Type = LayerConfig<HIDDENLAYERSIZE, actf::TanSig>;
     using L2Type = LayerConfig<HIDDENLAYERSIZE, actf::TanSig>;
     using L3Type = LayerConfig<1, actf::Exp>;
-    using NetType = TemplNet<RealT, dconf, 6 /*6 electronic coordinates*/, L1Type, L2Type, L3Type>;
-    QTemplWrapper<NetType> ann;
+    using NetType = TemplNet<RealT, dconf, 5 /*1 e-e + 4 e-p distances*/, L1Type, L2Type, L3Type>;
+    using WrapperType = QTemplWrapper<NetType>;
+
+    // --- VMC optimization of the NNWF
+
+
+    if (myrank == 0) { cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl; }
+
+    // Declare Hamiltonian for H2
+    const double drp = 1.4;
+    HydrogenMoleculeHamiltonian ham(drp);
+    if (myrank == 0) { cout << "-> ham:    drp = " << drp << endl << endl; }
+
+
+    const double rp[6]{-0.5*drp, 0., 0., 0.5*drp, 0., 0.};
+    using DistNNType = DistanceFeedWrapper<WrapperType>;
+    DistNNType ann(WrapperType(), 3, 2, 2, rp);
+
+    static_assert(DistanceFeedWrapper<WrapperType>::calcNDists(2, 2) == 5, ""); // static check for correct number of distances
 
     // create random generator
     random_device rdev;
     mt19937_64 rgen;
     rgen = mt19937_64(rdev());
+    rgen.seed(0);
     auto rd = normal_distribution<double>(0, sqrt(1./HIDDENLAYERSIZE)); // rule-of-thumb sigma
 
     // setup initial weights
@@ -56,19 +130,17 @@ int main()
     MPI_Bcast(vp, nvpar, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     ann.setVariationalParameters(vp);
 
-    // --- VMC optimization of the NNWF
-
-
-    if (myrank == 0) { cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl; }
-
-    // Declare Hamiltonian for H2
-    const double drp = 1.4;
-    HydrogenMoleculeHamiltonian ham(drp);
-    if (myrank == 0) { cout << "-> ham:    drp = " << drp << endl << endl; }
 
     // Declare the trial wave function
     // setup the individual components
-    ANNWaveFunction<QTemplWrapper<NetType>> psi_nn(3, 2, ann);
+
+    ANNWaveFunction<DistNNType> psi_nn(3, 2, ann);
+
+    const double re0[6]{-0.3, -0.2, 0.2,
+                         0.24, 0.32, -0.4};
+    checkDerivatives(psi_nn, re0, 0.00001, 0.001, 1.e-8, true);
+
+
     MolecularSigmaOrbital psi_orb1(drp, 0);
     MolecularSigmaOrbital psi_orb2(drp, 1);
     // and put them together via MultiComponentWaveFunction
@@ -112,7 +184,7 @@ int main()
 
     // optimize the NNWF
     if (myrank == 0) { cout << "   Optimization . . ." << endl; }
-    minimizeEnergy<EnergyGradientTargetFunction>(vmc, adam, E_NMC, G_NMC, false, 0.001);
+    //minimizeEnergy<EnergyGradientTargetFunction>(vmc, adam, E_NMC, G_NMC, false, 0.001);
     if (myrank == 0) { cout << "   . . . Done!" << endl << endl; }
 
     // compute final energy
