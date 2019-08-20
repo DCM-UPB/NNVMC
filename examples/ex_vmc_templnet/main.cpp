@@ -10,7 +10,7 @@
 #include "vmc/EnergyMinimization.hpp"
 #include "nfm/Adam.hpp"
 #include "nfm/LogManager.hpp"
-#include "nnvmc/ANNWaveFunction.hpp"
+#include "nnvmc/SimpleNNWF.hpp"
 #include "qnets/templ/TemplNet.hpp"
 #include "qnets/actf/TanSig.hpp"
 #include "qnets/actf/Exp.hpp"
@@ -34,7 +34,7 @@ int main()
     const int HIDDENLAYERSIZE = 12; // excluding (!) offset "unit"
     using L1Type = LayerConfig<HIDDENLAYERSIZE, actf::TanSig>;
     using L2Type = LayerConfig<1, actf::Exp>;
-    using NetType = TemplNet<RealT, dconf, 1, L1Type, L2Type>;
+    using NetType = TemplNet<RealT, dconf, 1, 1, L1Type, L2Type>;
     QTemplWrapper<NetType> ann;
 
     // create random generator
@@ -68,7 +68,7 @@ int main()
     // --- VMC optimization of the NNWF
 
     // Declare the trial wave functions
-    ANNWaveFunction<QTemplWrapper<NetType>> psi(1, 1, ann);
+    SimpleNNWF<QTemplWrapper<NetType>> psi(1, 1, ann);
 
     // Declare an Hamiltonian
     // We use the harmonic oscillator with w=1 and w=2
@@ -79,8 +79,8 @@ int main()
     if (myrank == 0) { cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl; }
 
     using namespace vmc;
-    const long E_NMC = 100000l; // MC samplings to use for computing the initial/final energy
-    const long G_NMC = 20000l; // MC samplings to use for computing the energy and gradient
+    const long E_NMC = 1048576; // MC samplings to use for computing the initial/final energy
+    const long G_NMC = 32768; // MC samplings to use for computing the energy and gradient
     double energy[4]; // energy
     double d_energy[4]; // energy error bar
 

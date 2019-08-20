@@ -7,7 +7,7 @@
 #include "qnets/poly/actf/IdentityActivationFunction.hpp"
 #include "qnets/poly/io/PrintUtilities.hpp"
 #include "sannifa/QPolyWrapper.hpp"
-#include "nnvmc/ANNWaveFunction.hpp"
+#include "nnvmc/SimpleNNWF.hpp"
 
 #include <iostream>
 #include <cassert>
@@ -17,7 +17,7 @@
 
 /*
 
-  In this test we check that the ANNWaveFunction works as expected,
+  In this test we check that the SimpleNNWF works as expected,
   using the Sannifa-wrapped QNets/PolyNet as backend.
   In particular we want to be sure that all the derivatives are computed properly.
 
@@ -199,7 +199,7 @@ int main()
 
     // NN wave function
     const int n = 1;
-    ANNWaveFunction<QPolyWrapper> psi(n, n, wrapper);
+    SimpleNNWF<QPolyWrapper> psi(n, n, wrapper);
     assert(psi.hasVD1());
     assert(!psi.hasD1VD1());
     assert(!psi.hasD2VD1());

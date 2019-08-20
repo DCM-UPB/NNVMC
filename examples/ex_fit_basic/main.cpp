@@ -9,7 +9,7 @@
 #include "vmc/MPIVMC.hpp"
 #include "nfm/Adam.hpp"
 #include "nfm/LogManager.hpp"
-#include "nnvmc/ANNWaveFunction.hpp"
+#include "nnvmc/SimpleNNWF.hpp"
 #include "qnets/templ/TemplNet.hpp"
 #include "qnets/actf/Sigmoid.hpp"
 #include "qnets/actf/Exp.hpp"
@@ -34,7 +34,7 @@ int main()
     const int HIDDENLAYERSIZE = 12;
     using L1Type = LayerConfig<HIDDENLAYERSIZE, actf::Sigmoid>;
     using L2Type = LayerConfig<1, actf::Exp>;
-    using NetType = TemplNet<RealT, dconf, 1, L1Type, L2Type>;
+    using NetType = TemplNet<RealT, dconf, 1, 1, L1Type, L2Type>;
     QTemplWrapper<NetType> ann(dflags0);
 
     const int nvpar = ann.getNVariationalParameters();
@@ -117,7 +117,7 @@ int main()
     // Declare the trial wave functions
     ann.enableFirstDerivative();
     ann.enableSecondDerivative();
-    ANNWaveFunction<QTemplWrapper<NetType>> psi(1, 1, ann);
+    SimpleNNWF<QTemplWrapper<NetType>> psi(1, 1, ann);
 
     // Declare an Hamiltonian
     // We use the harmonic oscillator with w=1 and w=2

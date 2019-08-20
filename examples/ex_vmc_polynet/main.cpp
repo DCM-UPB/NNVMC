@@ -10,7 +10,7 @@
 #include "vmc/EnergyMinimization.hpp"
 #include "nfm/Adam.hpp"
 #include "nfm/LogManager.hpp"
-#include "nnvmc/ANNWaveFunction.hpp"
+#include "nnvmc/SimpleNNWF.hpp"
 #include "qnets/poly/FeedForwardNeuralNetwork.hpp"
 #include "qnets/poly/io/PrintUtilities.hpp"
 #include "sannifa/QPolyWrapper.hpp"
@@ -56,7 +56,7 @@ int main()
     nn_wrapper.enableVariationalFirstDerivative();
 
     // Declare the trial wave functions
-    using NNWFType = ANNWaveFunction<QPolyWrapper>;
+    using NNWFType = SimpleNNWF<QPolyWrapper>;
     NNWFType psi(1, 1, nn_wrapper);
 
     // Declare an Hamiltonian
@@ -68,8 +68,8 @@ int main()
     if (myrank == 0) { cout << endl << " - - - FFNN-WF FUNCTION OPTIMIZATION - - - " << endl << endl; }
 
     using namespace vmc;
-    const long E_NMC = 100000l; // MC samplings to use for computing the energy (init/final)
-    const long G_NMC = 20000l; // MC samplings to use for computing the energy and gradient
+    const long E_NMC = 1048576; // MC samplings to use for computing the energy (init/final)
+    const long G_NMC = 32768; // MC samplings to use for computing the energy and gradient
     double energy[4]; // energy
     double d_energy[4]; // energy error bar
 

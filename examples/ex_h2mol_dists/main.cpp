@@ -9,7 +9,7 @@
 #include "vmc/EnergyMinimization.hpp"
 #include "nfm/Adam.hpp"
 #include "nfm/LogManager.hpp"
-#include "nnvmc/ANNWaveFunction.hpp"
+#include "nnvmc/SimpleNNWF.hpp"
 #include "nnvmc/DistanceFeedWrapper.hpp"
 #include "qnets/templ/TemplNet.hpp"
 #include "qnets/actf/TanSig.hpp"
@@ -93,7 +93,7 @@ int main()
     using L1Type = LayerConfig<HIDDENLAYERSIZE, actf::TanSig>;
     using L2Type = LayerConfig<HIDDENLAYERSIZE, actf::TanSig>;
     using L3Type = LayerConfig<1, actf::Exp>;
-    using NetType = TemplNet<RealT, dconf, 5 /*1 e-e + 4 e-p distances*/, L1Type, L2Type, L3Type>;
+    using NetType = TemplNet<RealT, dconf, 6, 5 /*1 e-e + 4 e-p distances*/, L1Type, L2Type, L3Type>;
     using WrapperType = QTemplWrapper<NetType>;
 
     // --- VMC optimization of the NNWF
@@ -134,11 +134,11 @@ int main()
     // Declare the trial wave function
     // setup the individual components
 
-    ANNWaveFunction<DistNNType> psi_nn(3, 2, ann);
+    SimpleNNWF<DistNNType> psi_nn(3, 2, ann);
 
     const double re0[6]{-0.3, -0.2, 0.2,
                          0.24, 0.32, -0.4};
-    checkDerivatives(psi_nn, re0, 0.00001, 0.001, 1.e-8, true);
+    checkDerivatives(psi_nn, re0, 0.00001, 0.0005, 1.e-8, true);
 
 
     MolecularSigmaOrbital psi_orb1(drp, 0);
@@ -150,8 +150,8 @@ int main()
     psi.addWaveFunction(&psi_orb2);
 
     using namespace vmc;
-    const long E_NMC = 100000l; // MC samplings to use for computing the initial/final energy
-    const long G_NMC = 20000l; // MC samplings to use for computing the energy and gradient
+    const long E_NMC = 1048576; // MC samplings to use for computing the initial/final energy
+    const long G_NMC = 32768; // MC samplings to use for computing the energy and gradient
     double energy[4]; // energy
     double d_energy[4]; // energy error bar
 
@@ -184,7 +184,7 @@ int main()
 
     // optimize the NNWF
     if (myrank == 0) { cout << "   Optimization . . ." << endl; }
-    //minimizeEnergy<EnergyGradientTargetFunction>(vmc, adam, E_NMC, G_NMC, false, 0.001);
+    minimizeEnergy<EnergyGradientTargetFunction>(vmc, adam, E_NMC, G_NMC, false, 0.001);
     if (myrank == 0) { cout << "   . . . Done!" << endl << endl; }
 
     // compute final energy
