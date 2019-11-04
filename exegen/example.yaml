@@ -1,0 +1,22 @@
+# global includes beyond the standard headers of each library
+# -> you do not have to include these in your code snippets
+includes:
+    - iostream
+    - cmath
+
+# globally used namespaces
+namespaces:
+    - std
+    - templ
+    - vmc
+
+# code snippet list (inserted in order)
+# any includes will be merged
+snippets:
+    - globals.cpp
+    - ann.cpp
+    - init_beta.cpp
+    - vmc_setup.cpp
+    - comp_energy.cpp
+    - vmc_opt.cpp
+    - comp_energy.cpp
