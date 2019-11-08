@@ -1,0 +1,7 @@
+# ignore typical name of user's env config file
+config.sh
+
+# ignore exegen outputs
+main.cpp
+CMakeLists.txt
+build.sh

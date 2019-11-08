@@ -3,12 +3,12 @@
 includes:
   - iostream
   - cmath
+  - random
+  - mpi.h
 
 # globally used namespaces
 namespaces:
   - std
-  - templ
-  - vmc
 
 # code snippet list (inserted in order)
 # any includes will be merged
