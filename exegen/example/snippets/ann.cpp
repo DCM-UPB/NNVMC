@@ -1,3 +1,10 @@
+#include "qnets/templ/TemplNet.hpp"
+#include "qnets/actf/TanSig.hpp"
+#include "qnets/actf/Exp.hpp"
+#include "sannifa/QTemplWrapper.hpp"
+
+using namespace templ;
+
 // Setup TemplNet
 constexpr auto dconf = DerivConfig::D12_VD1; // configure necessary derivatives
 using RealT = double;

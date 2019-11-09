@@ -1,3 +1,9 @@
+#include "vmc/VMC.hpp"
+#include "nnvmc/SimpleNNWF.hpp"
+#include "../../examples/common/ExampleFunctions.hpp"
+
+using namespace vmc;
+
 // Declare the trial wave function
 SimpleNNWF<QTemplWrapper<NetType>> psi(1, 1, ann);
 

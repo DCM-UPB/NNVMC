@@ -1,10 +1,13 @@
 # global includes beyond the standard headers of each library
 # -> you do not have to include these in your code snippets
-includes:
+includes_sys: # included like #include <..>
   - iostream
   - cmath
   - random
   - mpi.h
+
+includes_usr: # included like #include "..."
+# - not used here
 
 # globally used namespaces
 namespaces:

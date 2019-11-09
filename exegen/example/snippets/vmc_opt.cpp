@@ -1,3 +1,7 @@
+#include "vmc/EnergyMinimization.hpp"
+#include "nfm/Adam.hpp"
+#include "nfm/LogManager.hpp"
+
 // -- Setup Adam optimization
 nfm::Adam adam(psi.getNVP(), true /* use averaging to obtian final result */);
 adam.setAlpha(0.02);
