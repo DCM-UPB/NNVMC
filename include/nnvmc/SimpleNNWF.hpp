@@ -1,5 +1,5 @@
-#ifndef NNVMC_ANNWAVEFUNCTION_HPP
-#define NNVMC_ANNWAVEFUNCTION_HPP
+#ifndef NNVMC_SIMPLENNWF_HPP
+#define NNVMC_SIMPLENNWF_HPP
 
 #include "vmc/WaveFunction.hpp"
 #include "sannifa/Sannifa.hpp"
@@ -7,13 +7,12 @@
 
 #include <stdexcept>
 
-// ANNWaveFunction implements a vmc::WaveFunction based on a
-// ANN function of type ANNType. ANNType is expected to derive
-// from or behave like a Sannifa wrapper (see sannifa library).
-// -> You are not required to derive from Sannifa, but doing so
-// guarantees compatibility with this template.
+// SimpleNNWF implements a vmc::WaveFunction based on a ANN function of type ANNType,
+// by using raw particle coordinates as inputs and the output as wave function value.
+// ANNType is expected to derive from or behave like a Sannifa wrapper (see sannifa library).
+// -> You are not required to derive from Sannifa, but doing so guarantees compatibility with this template.
 template <class ANNType>
-class ANNWaveFunction final: public vmc::WaveFunction
+class SimpleNNWF final: public vmc::WaveFunction
 {
 
 private:
@@ -21,7 +20,7 @@ private:
 
     mci::SamplingFunctionInterface * _clone() const final
     {
-        return new ANNWaveFunction(this->getNSpaceDim(), this->getNPart(), *_ann);
+        return new SimpleNNWF(this->getNSpaceDim(), this->getNPart(), *_ann);
     }
 
 public:
@@ -29,7 +28,7 @@ public:
     // --- Constructor and destructor
     // IMPORTANT: The provided ann should be ready to use
     // and have all required derivatives enabled
-    ANNWaveFunction(int nspacedim, int npart, const ANNType &ann):
+    SimpleNNWF(int nspacedim, int npart, const ANNType &ann):
             vmc::WaveFunction(nspacedim, npart, 1, ann.getNVariationalParameters(), ann.hasVariationalFirstDerivative(), ann.hasCrossFirstDerivative(), ann.hasCrossSecondDerivative()),
             _ann(new ANNType(ann))
     {
@@ -44,7 +43,7 @@ public:
         }
     }
 
-    ~ANNWaveFunction() final { delete _ann; }
+    ~SimpleNNWF() final { delete _ann; }
 
     // --- const ann access
     const ANNType &getANN() { return *_ann; }

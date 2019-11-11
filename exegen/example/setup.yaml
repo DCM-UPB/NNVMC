@@ -1,0 +1,25 @@
+# global includes beyond the standard headers of each library
+# -> you do not have to include these in your code snippets
+includes_sys: # included like #include <..>
+  - iostream
+  - cmath
+  - random
+  - mpi.h
+
+includes_usr: # included like #include "..."
+# - not used here
+
+# globally used namespaces
+namespaces:
+  - std
+
+# code snippet list (inserted in order)
+# any includes will be merged
+snippets:
+  - snippets/globals.cpp
+  - snippets/ann.cpp
+  - snippets/init_beta.cpp
+  - snippets/vmc_setup.cpp
+  - snippets/comp_energy.cpp
+  - snippets/vmc_opt.cpp
+  - snippets/comp_energy.cpp
