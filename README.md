@@ -2,7 +2,8 @@
 
 C++ Library for Variational Monte Carlo simulations using a Feed Forward Neural Network as trial wavefunction.
 
-It is built upon our VMC++ (https://github.com/DCM-UPB/VMCPlusPlus) and FFNN (https://github.com/DCM-UPB/FeedForwardNeuralNetwork) libraries.
+It is built upon our VMC++ (https://github.com/DCM-UPB/VMCPlusPlus) and QNets (https://github.com/DCM-UPB/QNets) libraries.
+Furthermore, the sannifa library (https://github.com/DCM-UPB/sannifa) is required for connection (currently the sannifa build process also requires PyTorch package, which should be optional actually).
 
 In `doc/` there is a user manual in pdf and a config for doxygen.
 
@@ -21,7 +22,7 @@ However, in principle any system with C++11 supporting compiler should work.
 # Requirements
 
 - CMake, to use our build process
-- master versions of VMC++ (incl. MCI++, NoisyFunMin) and FFNN
+- master versions of VMC++ (incl. MCI++, NoisyFunMin), QNets and sannifa
 - GNU Scientific Library (~2.3+)
 - (optional) a MPI implementation, to use parallelized integration
 - (optional) valgrind, to run `./run.sh` in `test/`
@@ -52,5 +53,5 @@ To activate this feature, set `USE_MPI=1` inside your config.sh, before building
 
 # Multi-threading: OpenMP
 
-This used FFNN library also supports multi-threaded evaluation with a shared-memory paradigm, thanks to OpenMP. This feature can be enabled and disabled when compiling the FFNN library.
+The used QNets (or PyTorch) libraries also support multi-threaded evaluation with a shared-memory paradigm, thanks to OpenMP. This feature can be enabled and disabled when compiling the QNets or PyTorch libraries.
 If you are already using MPI for parallel MC integration, it is usually not beneficial to also use OpenMP for the FFNN.
