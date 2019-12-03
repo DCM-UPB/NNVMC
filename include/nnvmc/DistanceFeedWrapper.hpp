@@ -138,12 +138,12 @@ public:
     }
 
     // wrapper-specific getters
-    const ANNType &getRawNN(){ return _rawNN; }
-    int getNSpaceDim() { return _nspacedim; }
-    int getNVecs() { return _nvecs; }
-    int getNStatic() { return _nstatic; }
-    const double * getRStatic() { return _rstatic; }
-    const double * getRStatic(int i_vec) { return _rstatic + i_vec*_nspacedim; }
+    const ANNType &getRawNN() const { return _rawNN; }
+    int getNSpaceDim() const { return _nspacedim; }
+    int getNVecs() const { return _nvecs; }
+    int getNStatic() const { return _nstatic; }
+    const double * getRStatic() const { return _rstatic; }
+    const double * getRStatic(int i_vec) const { return _rstatic + i_vec*_nspacedim; }
 
     // Misc
 

@@ -46,7 +46,7 @@ public:
     ~SimpleNNWF() final { delete _ann; }
 
     // --- const ann access
-    const ANNType &getANN() { return *_ann; }
+    const ANNType &getANN() const { return *_ann; }
 
     // --- interface for manipulating the variational parameters
     void setVP(const double vp[]) final { _ann->setVariationalParameters(vp); }
