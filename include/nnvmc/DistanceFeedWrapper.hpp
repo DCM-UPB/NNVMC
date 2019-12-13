@@ -67,11 +67,37 @@ private:
         if (flag_d2) { std::fill(_d2_dist, _d2_dist + _ndists*_ntotdim_vecs, 0.); }
 
         if (useSort) { // prepare sorted input
+            const bool verbose = false;
+
+            if (verbose) {
+                std::cout << "r_e input: ";
+                for (int i = 0; i < _ntotdim_vecs; ++i) { std::cout << in_orig[i] << " "; }
+                std::cout << std::endl;
+            }
+            // hard-coded potential energy calculation for testing
+            double epot_ep[_nvecs];
+            std::fill(epot_ep, epot_ep + _nvecs, 0.);
+            for (int i = 0; i < _nvecs; ++i) {
+                for (int j = 0; j < _nstatic; ++j) {
+                    double distvec[_nspacedim]; // needed as argument, but isn't actually used here
+                    const double dist = nnvmc_detail::calc_distv(_nspacedim, in_orig + i*_nspacedim, _rstatic + j*_nspacedim, distvec);
+                    epot_ep[i] -= 1./dist;
+                    if (verbose) { std::cout << "dist_ep " << i << "<->" << j << " : " << dist << std::endl; }
+                }
+                if (verbose) { std::cout << "epot_ep[" << i << "]: " << epot_ep[i] << std::endl; }
+            }
+
+            // setup arrays relevant to sorting and sort the input
             std::iota(_idx_sorted, _idx_sorted + _nvecs, 0); // fill a range 0...nvecs-1
             std::copy(in_orig, in_orig + _ntotdim_vecs, _in_sorted); // copy original input
-            std::sort(_idx_sorted, _idx_sorted + _nvecs, [in = in_orig, ndim = _nspacedim](int a, int b) {
-                return in[a*ndim] > in[b*ndim]; // currently, just sort according to x position
+            std::sort(_idx_sorted, _idx_sorted + _nvecs, [in = in_orig, ndim = _nspacedim, pot = epot_ep](int a, int b) {
+                return pot[a] > pot[b]; // currently, sorting according to epot_e value
             });
+            if (verbose) {
+                std::cout << "Sorted indices: ";
+                for (int i = 0; i < _nvecs; ++i) { std::cout << _idx_sorted[i] << " "; }
+                std::cout << std::endl << std::endl;
+            }
             for (int i = 0; i < _nvecs; ++i) { // fill sorted input array
                 std::copy(in_orig + _idx_sorted[i]*_nspacedim, in_orig + (_idx_sorted[i] + 1)*_nspacedim, _in_sorted + i*_nspacedim);
             }
