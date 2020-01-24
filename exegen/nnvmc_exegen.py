@@ -101,9 +101,9 @@ print(args)
 
 # concatenate all includes, namespaces and
 # snippet code into the following strings
-include_str = ""
-namespace_str = ""
-snippet_str = ""
+include_str = '#include "vmc/MPIVMC.hpp"\n' # we always need that one for Init() / Finalize()
+namespace_str = ''
+snippet_str = ''
 
 with open(args.setup, 'r') as s_file:
     s = yaml.load(s_file, Loader=yaml.FullLoader)
@@ -121,8 +121,6 @@ with open(args.setup, 'r') as s_file:
     if s['includes_usr'] is not None:
         for incl in s['includes_usr']:
             include_str += '#include "' + incl + '"\n'
-    # we always need that one for Init() / Finalize()
-    include_str += '#include "vmc/MPIVMC.hpp"\n'
 
     # add "global" namespaces
     if s['namespaces'] is not None:    
