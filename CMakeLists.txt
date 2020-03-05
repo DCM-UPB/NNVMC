@@ -23,7 +23,8 @@ message(STATUS "Configured GSL_ROOT_DIR: ${GSL_ROOT_DIR}")
 if (USE_MPI)
     find_package(MPI)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_MPI=1")
-    message(STATUS "MPI_LIBRARIES: ${MPI_LIBRARIES}")
+    message(STATUS "MPI_LIBRARIES: ${MPI_CXX_LIBRARIES}")
+    message(STATUS "MPI_INCLUDE_PATH: ${MPI_INCLUDE_PATH}")
 endif ()
 
 find_package(GSL)
@@ -65,7 +66,7 @@ message(STATUS "Configured CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
 message(STATUS "Configured CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 # set header / library paths
-include_directories(include/ ${MCI_INCLUDE_DIR} ${NFM_INCLUDE_DIR} ${VMC_INCLUDE_DIR} ${QNETS_INCLUDE_DIR} ${SANNIFA_INCLUDE_DIR}) # headers
+include_directories(include/ ${MCI_INCLUDE_DIR} ${NFM_INCLUDE_DIR} ${VMC_INCLUDE_DIR} ${QNETS_INCLUDE_DIR} ${SANNIFA_INCLUDE_DIR} ${MPI_INCLUDE_PATH}) # headers
 
 enable_testing()
 
