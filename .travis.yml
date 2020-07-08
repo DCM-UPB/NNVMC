@@ -10,13 +10,13 @@ addons:
     - libgsl-dev
 
   homebrew:
+    update: true
     packages:
-    - valgrind
     - gsl
 
 matrix:
   include:
-  - os: linux // arch linux docker
+  - os: linux # arch linux docker
     env:
     - MYCXX="g++"
     - USE_DOCKER="TRUE"

@@ -144,7 +144,7 @@ with open('main.cpp', 'w') as o_file:
     o_file.write(include_str)
 
     # open main function
-    o_file.write("int main()\n{\n")
+    o_file.write("int main(int argc, char* argv[])\n{\n")
 
     # write namespaces
     o_file.write(namespace_str)
