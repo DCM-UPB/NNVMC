@@ -90,7 +90,7 @@ private:
             // setup arrays relevant to sorting and sort the input
             std::iota(_idx_sorted, _idx_sorted + _nvecs, 0); // fill a range 0...nvecs-1
             std::copy(in_orig, in_orig + _ntotdim_vecs, _in_sorted); // copy original input
-            std::sort(_idx_sorted, _idx_sorted + _nvecs, [in = in_orig, ndim = _nspacedim, pot = epot_ep](int a, int b) {
+            std::sort(_idx_sorted, _idx_sorted + _nvecs, [in = in_orig, ndim = _nspacedim, pot = &epot_ep[0]](int a, int b) {
                 return pot[a] > pot[b]; // currently, sorting according to epot_e value
             });
             if (verbose) {
